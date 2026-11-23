@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>试点 · WebWallGL 场景渲染</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#0b0c0e;color:#eee;font:14px/1.6 "Microsoft YaHei",sans-serif}
+  header{padding:14px 20px;border-bottom:1px solid #ffffff18;display:flex;align-items:center;gap:14px}
+  header b{font-size:15px}
+  header a{color:#9ab;font-size:12px;text-decoration:none;margin-left:auto}
+  #stage{position:relative;width:100vw;height:calc(100vh - 52px);overflow:hidden;background:#000}
+  #status{position:absolute;z-index:9;left:16px;top:16px;padding:9px 13px;background:#000a;border:1px solid #ffffff25;border-radius:8px;font-size:12px;max-width:60ch;white-space:pre-wrap}
+  #status.err{border-color:#ff6b6b;color:#ffb3b3}
+</style>
+</head>
+<body>
+<header><b>WebWallGL 场景渲染试点</b><a href="/">← 返回主程序</a></header>
+<div id="stage"><div id="status">正在加载 WebWallGL…</div></div>
+<script type="module">
+const statusBox = document.getElementById('status');
+const stage = document.getElementById('stage');
+function say(msg, isErr){ statusBox.textContent = msg; statusBox.className = isErr ? 'err' : ''; }
+
+try {
+  say('正在从 CDN 加载 WebWallGL…');
+  const { mount, httpSource } = await import('https://cdn.jsdelivr.net/npm/webwallgl/+esm');
+  say('库已加载，正在挂载场景…');
+
+  // httpSource 要传「文件夹 URL」，库会自己读该目录下的 project.json，
+  // 并回退加载 scene.pkg（实测 PKG_PATHS 含 "scene.pkg"）。
+  const url = '/media/' + encodeURIComponent('场景') + '/';
+  const logs = [];
+  const wp = await mount(stage, {
+    source: httpSource(url),
+    onDiagnostic: (msg, level) => { logs.push('[' + level + '] ' + msg); renderLogs(); },
+    onError: (err) => { logs.push('[ERROR] ' + (err?.message || err)); renderLogs(); },
+    onFirstFrame: () => { logs.push('[首帧] 已渲染'); renderLogs(); },
+  });
+  function renderLogs(){ statusBox.textContent = '挂载成功，库诊断：\n' + logs.slice(-14).join('\n'); }
+  say('挂载成功，等待渲染诊断…');
+} catch (e) {
+  say('渲染失败：' + (e && e.message ? e.message : e) + '\n\n注意：可能是 CDN 不可达，或 httpSource 对 pkg 直链的路径格式有要求。', true);
+  console.error(e);
+}
+</script>
+</body>
+</html>

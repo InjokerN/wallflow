@@ -1,0 +1,45 @@
+# WallFlow — 只跟踪源码。密钥、用户数据、二进制产物一律不进仓库。
+
+# 依赖（用 npm install 还原）
+node_modules/
+
+# 打包产物（Release 附件单独发布，不放仓库；524MB 目录会污染 git 历史）
+release/
+*.exe
+*.dll
+*.msi
+*.dmg
+*.AppImage
+
+# ── 敏感 + 用户数据：绝对不能提交 ──
+# cloud.json 含明文 Cloudflare R2 访问密钥；wallflow.db 含开发机绝对路径与用户壁纸数据。
+# 首次运行会自动创建干净的空库，无需随源码分发（clean-package.mjs 也确认此口径）。
+server/data/
+server/uploads/
+server/exports/
+# 云凭证/令牌的任何散落副本
+cloud.json
+*.pem
+*.key
+.env
+.env.*
+.npmrc
+
+# C++ 内核编译产物（源码在 core/wallcore/src + CMakeLists.txt，需本地 MSVC/CMake 重编译）
+core/wallcore/build/
+
+# 项目过程文档/工作记录（面向发布仓库，只留 README）
+.workbuddy/
+任务执行日志.md
+待办清单与体验反馈.md
+审查报告.md
+三方案技术评估与方案3实施纲要.md
+
+# 日志、备份、临时文件
+*.log
+*.bak
+*.bak2
+*.tmp
+*.orig
+.DS_Store
+Thumbs.db

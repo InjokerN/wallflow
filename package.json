@@ -1,0 +1,86 @@
+{
+  "name": "wallflow",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "main": "shell/boot.cjs",
+  "description": "WallFlow 桌面动态壁纸",
+  "author": "WallFlow",
+  "scripts": {
+    "start": "node server/src/app.js",
+    "app": "electron shell/main.mjs",
+    "app:debug": "electron shell/main.mjs --no-attach",
+    "app:selftest": "electron shell/main.mjs --selftest",
+    "app:shot": "electron shell/main.mjs --shot --no-attach",
+    "dist": "electron-builder --win dir && node scripts/publish.mjs",
+    "dist:portable": "electron-builder --win portable",
+    "clean:package": "node scripts/clean-package.mjs"
+  },
+  "dependencies": {
+    "@webwallgl/editor": "^3.0.1",
+    "adm-zip": "^0.6.1",
+    "aws4fetch": "^1.0.20",
+    "express": "^4.21.2",
+    "ffmpeg-static": "^5.3.0",
+    "koffi": "^3.3.8",
+    "multer": "^2.0.2",
+    "webwallgl": "^3.0.2",
+    "yauzl": "^3.4.0",
+    "yazl": "^3.3.1"
+  },
+  "devDependencies": {
+    "electron": "^45.3.3",
+    "electron-builder": "^26.0.12",
+    "esbuild": "^0.28.2"
+  },
+  "build": {
+    "appId": "com.wallflow.desktop",
+    "productName": "WallFlow",
+    "asar": false,
+    "directories": {
+      "output": "release",
+      "buildResources": "shell/assets"
+    },
+    "files": [
+      "shell/**/*",
+      "web/**/*",
+      "server/src/**/*",
+      "!server/exports/**",
+      "!server/data/**",
+      "!server/uploads/**",
+      "!**/*.log",
+      "server/data/wallflow.db",
+      "core/fake-core.mjs",
+      "core/wallcore/build/bin/Release/wallcore.exe",
+      "core/wallcore/build/bin/Release/libmpv-2.dll",
+      "node_modules/koffi/**/*",
+      "node_modules/@koromix/**/*",
+      "node_modules/aws4fetch/**/*",
+      "node_modules/yauzl/**/*",
+      "node_modules/pend/**/*",
+      "node_modules/ffmpeg-static/ffmpeg.exe",
+      "node_modules/ffmpeg-static/index.js",
+      "node_modules/ffmpeg-static/package.json",
+      "package.json"
+    ],
+    "win": {
+      "icon": "shell/assets/icon.ico",
+      "target": [
+        "dir"
+      ]
+    },
+    "electronLanguages": [
+      "zh-CN",
+      "zh-TW",
+      "en-US",
+      "en-GB",
+      "ja",
+      "ko",
+      "ru",
+      "fr",
+      "de",
+      "es",
+      "pt-BR"
+    ]
+  }
+}

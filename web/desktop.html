@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WallFlow Desktop</title>
+<script src="/vendor/webwallgl.global.min.js"></script>
+<style>
+  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000;cursor:none}
+  #stage{position:fixed;inset:0;overflow:hidden;background:#000}
+  /* 每次换壁纸都是一个独立图层：新层淡入盖住旧层，旧层播完动画后移除 → 交叉淡化，不黑屏 */
+  #stage>.layer{position:absolute;inset:0;opacity:0;transition:opacity .6s ease;will-change:opacity;transform-origin:50% 50%}
+  #stage>.layer.on{opacity:1}
+  /* 缩放/位移由「正在播放」页控制：单独一条 transition，拖动时跟手又不抖 */
+  #stage>.layer.animated{transition:opacity .6s ease,transform .16s ease-out}
+  #stage .layer img,#stage .layer video,#stage .layer canvas{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover}
+  #stage .layer[data-mode="contain"] img,#stage .layer[data-mode="contain"] video,#stage .layer[data-mode="contain"] canvas{object-fit:contain}
+  #stage .layer[data-mode="stretch"] img,#stage .layer[data-mode="stretch"] video,#stage .layer[data-mode="stretch"] canvas{object-fit:fill}
+  #stage .layer iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;pointer-events:none;background:#000}
+  #stage .layer .wwgl-host{position:absolute;inset:0}
+  #hint{position:absolute;inset:0;z-index:5;display:none;place-items:center;color:#5c6064;font:13px/1.7 "Segoe UI","Microsoft YaHei",sans-serif;text-align:center;letter-spacing:.3px}
+  #dbg{position:fixed;left:12px;bottom:12px;z-index:9;display:none;color:#cfd2d1;font:11px/1.6 Consolas,monospace;background:#000a;padding:6px 9px;border-radius:6px;pointer-events:none;white-space:pre}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="hint">还没有应用任何壁纸<br>打开 WallFlow，在详情页点「填充」或「适应」</div>
+<div id="dbg"></div>
+<script>
+(function(){
+  const API='/api/v1';
+  const FADE_MS=600;                 // 与 CSS 的 transition 保持一致
+  const stage=document.getElementById('stage');
+  const hint=document.getElementById('hint');
+  const dbg=document.getElementById('dbg');
+  const DEBUG=/[?&]debug=1/.test(location.search);
+  if(DEBUG) dbg.style.display='block';
+
+  const SCENE_PERF={fps:72,renderDpr:1,videoTexScale:0.5,quality:{postProcessing:'high'}};
+  const IMG_EXT=/\.(jpe?g|png|gif|webp|bmp|avif)$/i;
+
+  let curId=null, curStyle=null, curKind=null;
+  let curWall=null;          // 当前应显示的 {w, style}
+  let layers=[];             // 正在显示的图层（正常只有一个，切换瞬间有两个）
+  let pausedAuto=false;      // 全屏应用检测到后置为 true（主进程推的）
+  let pausedManual=false;    // 用户在「正在播放」页按的暂停
+  let paused=false;
+  let manualFrame=null;      // 当前壁纸的画面变换（后端下发）
+  let propsAll={};           // 当前壁纸的完整属性值（推给壁纸页面用）
+  let mouseClick=false;      // 用户开关：要不要把点击也转发给壁纸（默认不转）
+  let videoSound=false;      // 用户开关：视频壁纸在桌面上要不要出声（默认静音）
+  let curRenderFps=30;       // 全局渲染节拍（WE 同款），30/60/72/144，后端下发、切换壁纸保持
+  let measuredVideoFps=null; // 视频片源实测帧率采样（仅内部用，不对外暴露控制）
+  let lastPt=null;           // 上一次的 iframe 内坐标，点击时用它
+  let held=false;            // 左键是否按下，决定事件里的 buttons 位
+  // ---------- 取址 ----------
+  // dir_name 有两种历史写法：类型目录名（场景/视频/网页）和子目录名（导入/云端下载）。
+  // 之前这里一律当类型目录拼，子目录壁纸在桌面上是 404 黑屏。
+  const TYPE_DIR_OF={scene:'场景',video:'视频',web:'网页'};
+  const TYPE_DIR_SET=new Set(['场景','视频','网页']);
+  const dirNameOf=(w)=>TYPE_DIR_SET.has(w.dir_name)?w.dir_name:(TYPE_DIR_OF[w.type]||'');
+  const segsUrl=(s)=>s.split('/').filter(Boolean).map(encodeURIComponent).join('/');
+  function mediaPathUrl(w,rel){
+    const segs=String(rel||'').replace(/\\/g,'/').split('/').filter(Boolean);
+    if(!segs.length) return '';
+    if(TYPE_DIR_SET.has(segs[0])) return '/media/'+segsUrl(segs.join('/'));
+    return '/media/'+encodeURIComponent(dirNameOf(w))+'/'+segsUrl(segs.join('/'));
+  }
+  const mediaUrl=(w,file)=>file?mediaPathUrl(w,file):'';
+  // 壁纸自己的目录（场景渲染要的是目录，不是文件）
+  function mediaDirUrl(w){
+    const rel=String(w.main_file||'').replace(/\\/g,'/');
+    const i=rel.lastIndexOf('/');
+    if(i>0) return mediaPathUrl(w,rel.slice(0,i))+'/';
+    return '/media/'+encodeURIComponent(dirNameOf(w))+'/';
+  }
+
+  function setDebug(extra){
+    if(!DEBUG) return;
+    dbg.textContent='id='+(curId==null?'-':curId)+' style='+(curStyle||'-')+' kind='+(curKind||'-')
+      +(paused?' [paused'+(pausedManual?'/manual':'')+(pausedAuto?'/fullscreen':'')+']':'')
+      +' layers='+layers.length
+      +(manualFrame?' f='+manualFrame.mode+' '+manualFrame.scale+'%':'')
+      +(extra?'\n'+extra:'');
+  }
+
+  // ---------- 画面变换 ----------
+  // 所有类型通用：作用在最外层容器上，所以连背景一起动（与壁纸自带的「主体缩放」互补）
+  function applyFrame(layer, f){
+    if(!f) return;
+    layer.dataset.mode=f.mode||'cover';
+    const s=Math.max(0.5,Math.min(2,Number(f.scale||100)/100));
+    const tx=Number(f.x||0), ty=Number(f.y||0);
+    const t='translate('+tx+'%,'+ty+'%) scale('+s+')';
+    if(layer.style.transform!==t) layer.style.transform=t;
+  }
+
+  // ---------- 图层生命周期 ----------
+
+  function killLayer(layer){
+    layer._dead=true;                               // 让还在挂载中的场景自己放弃
+    if(layer._inst){ try{layer._inst.destroy();}catch(e){} layer._inst=null; }
+    layer.querySelectorAll('video').forEach(v=>{
+      try{ v.pause(); v.removeAttribute('src'); v.load(); }catch(e){}
+    });
+    layer.querySelectorAll('iframe').forEach(f=>{ try{ f.src='about:blank'; }catch(e){} });
+    try{ layer.remove(); }catch(e){}
+  }
+
+  function newLayer(style){
+    const l=document.createElement('div');
+    l.className='layer'+(style==='fit'?' fit':'');
+    stage.appendChild(l);          // 追加在最后 = 覆盖在旧层上方
+    return l;
+  }
+
+  function dropAllLayers(){ layers.forEach(killLayer); layers=[]; }
+
+  // 移除旧层：新层淡入完全盖住之后才拆，全程不会露黑底
+  function retireLayers(old){
+    setTimeout(()=>old.forEach(killLayer), FADE_MS+150);
+  }
+
+  const topLayer=()=>layers[layers.length-1]||null;
+
+  // ---------- 壁纸自带调节项：推给页面 ----------
+  // WE 的做法是向页面注入 window.wallpaperPropertyListener；iframe 已是跨源沙箱，
+  // 由后端注入进壁纸页的桥（wf-bridge.js）监听消息并转发给页面。必须推全量：
+  // 页面会把最后一次收到的对象当作完整面板值缓存。
+  function pushProps(layer){
+    const f=layer&&layer._iframe;
+    if(!f) return 'no-iframe';
+    let cw=null;
+    try{ cw=f.contentWindow; }catch(e){ return 'no-window'; }
+    if(!cw) return 'no-window';
+    const keys=Object.keys(propsAll);
+    if(!keys.length) return 'empty';
+    const payload={};
+    for(const k of keys) payload[k]={value:propsAll[k]};
+    try{
+      cw.postMessage({source:'wallflow-host',type:'wf-props',payload},'*');
+      return 'ok:'+keys.length;
+    }catch(e){ return 'throw:'+(e.message||e); }
+  }
+
+  // 全局渲染节拍下发给网页壁纸（WE 同款 applyGeneralProperties({fps})）。
+  // 遵守 WE 协议的壁纸脚本据此节流；不遵守的壁纸忽略即可，无害。
+  function pushRenderFps(layer){
+    const f=layer&&layer._iframe;
+    if(!f) return;
+    let cw=null;
+    try{ cw=f.contentWindow; }catch(e){ return; }
+    if(!cw) return;
+    try{ cw.postMessage({source:'wallflow-host',type:'wf-fps',fps:curRenderFps},'*'); }catch(e){}
+  }
+
+  // ---------- 光标转发 ----------
+  // 这个窗口贴在桌面图标层下面，真实的鼠标事件全被图标层截走，页面一个都收不到。
+  // 所以由主进程去"旁听"（见 shell/main.mjs），把光标位置送进来，我们在这里
+  // 合成事件塞进壁纸页面 —— 页面分不出真假，手势和 hover 都能跑起来。
+  //
+  // 位置一直转发（没副作用）；点击要用户自己开，因为它靠旁听全局左键实现，
+  // 打开之后点桌面图标、拖文件，壁纸也会跟着响应，这个消不掉。
+
+  function curFrame(){
+    if(manualFrame) return manualFrame;
+    return {mode:curStyle==='fit'?'contain':'cover',x:0,y:0,scale:100};
+  }
+
+  // 窗口坐标 → iframe 视口坐标。
+  // 图层上的变换是 translate(x%,y%) scale(s)、origin 在正中，所以
+  //   视觉位置 = 中心 + s×(原位置−中心) + 平移量
+  // 反过来解就是下面这个式子。必须反算：用户把画面缩到 130% 之后，
+  // 不反算的话鼠标和壁纸里的热点会整体错位。
+  function toFramePoint(cx,cy){
+    const f=curFrame();
+    const W=innerWidth,H=innerHeight;
+    const s=Math.max(0.5,Math.min(2,Number(f.scale||100)/100));
+    const tx=Number(f.x||0)/100*W, ty=Number(f.y||0)/100*H;
+    const ox=W/2, oy=H/2;
+    return {x:(cx-ox-tx)/s+ox, y:(cy-oy-ty)/s+oy};
+  }
+
+  // 取当前图层的 iframe contentWindow。场景/图片/视频没有 iframe，自然返回 null，
+  // 事件也就不会往不该去的地方发。
+  function docOf(){
+    const top=topLayer();
+    if(!top||!top._iframe||top._dead) return null;
+    try{
+      const win=top._iframe.contentWindow;
+      if(!win) return null;
+      return {win};
+    }catch(e){ return null; }     // 还没加载好或跨源
+  }
+
+  // 合成事件改走 postMessage：iframe 是跨源沙箱，宿主拿不到里面的 document，
+  // 由壁纸页里注入的桥（wf-bridge.js）用页面自己的构造函数重建事件并派发，
+  // 合成事件的 clientX / buttons 等细节在桥里保持不变。
+  function fire(ctx,name,x,y,buttons){
+    if(!ctx||!ctx.win) return false;
+    try{
+      ctx.win.postMessage({
+        source:'wallflow-host', type:'wf-cursor',
+        event:name, x:x, y:y, buttons:buttons,
+      },'*');
+      return true;
+    }catch(e){ return false; }
+  }
+
+  function onCursor(d){
+    if(!d||!curWall) return;
+    const ctx=docOf();
+    if(!ctx) return;
+    if(d.type==='move'){
+      lastPt=toFramePoint(d.x,d.y);
+      const b=held?1:0;
+      fire(ctx,'pointermove',lastPt.x,lastPt.y,b);
+      fire(ctx,'mousemove',lastPt.x,lastPt.y,b);
+      return;
+    }
+    // 点击用最后一帧的位置：鼠标按下的瞬间往往不会再报 move
+    if(!lastPt) lastPt=toFramePoint(d.x,d.y);
+    if(d.type==='down'){
+      held=true;
+      fire(ctx,'pointerdown',lastPt.x,lastPt.y,1);
+      fire(ctx,'mousedown',lastPt.x,lastPt.y,1);
+    }else{
+      held=false;
+      fire(ctx,'pointerup',lastPt.x,lastPt.y,0);
+      fire(ctx,'mouseup',lastPt.x,lastPt.y,0);
+      fire(ctx,'click',lastPt.x,lastPt.y,0);
+    }
+  }
+
+  // 只有网页壁纸有页面可喂。顺便让主进程知道要不要去读全局左键 ——
+  // 不用的时候一个键都不读。
+  function syncCursorFeed(){
+    const want=!!(curWall&&curWall.w&&curWall.w.type==='web'&&mouseClick);
+    // 关开关的那一刻如果壁纸那边还"按着"，得补一个抬起。
+    // 主进程那边 lastDown 会重置，我们这边不补的话它会一直以为鼠标没松，
+    // 之后每次移动都带着"按下"的状态。
+    if(!want&&held){
+      held=false;
+      const ctx=docOf();
+      if(ctx&&lastPt){
+        fire(ctx,'pointerup',lastPt.x,lastPt.y,0);
+        fire(ctx,'mouseup',lastPt.x,lastPt.y,0);
+      }
+    }
+    try{ if(window.WF_CURSOR) window.WF_CURSOR.setClickCapture(want); }catch(e){ /* 没有桥就跳过 */ }
+  }
+
+  function connectCursor(){
+    if(!window.WF_CURSOR||typeof window.WF_CURSOR.on!=='function') return;
+    try{ window.WF_CURSOR.on(onCursor); }catch(e){ /* 忽略 */ }
+  }
+
+  // ---------- 四种壁纸的渲染（全部画到指定 layer 里） ----------
+
+  async function paintScene(w, layer){
+    const host=document.createElement('div');
+    host.className='wwgl-host';
+    layer.appendChild(host);
+    const fb=document.createElement('img');
+    fb.src=mediaUrl(w,w.cover);
+    layer.appendChild(fb);
+    try{
+      const g=window.WebWallGL;
+      if(!g) throw new Error('WebWallGL 未加载');
+      const inst=await g.mount(host,{
+        source:g.httpSource(mediaDirUrl(w)),
+        ...SCENE_PERF, fps:curRenderFps,
+        onError:e=>console.warn('场景渲染出错',e),
+        onFirstFrame:()=>{ fb.style.display='none'; }
+      });
+      if(layer._dead || !layer.parentNode){ try{inst.destroy();}catch(e){} return; }
+      // mount() 的 Promise 和 onReady 在同一个内部首帧回调里 resolve，返回时首帧已画出。
+      // 但这版运行时没有把用户传入的 onFirstFrame 接到那条链上（只有 onReady 接了），
+      // 单靠 onFirstFrame 隐藏封面会永不执行 → 静态封面一直盖住实时画面。这里兜底隐藏。
+      fb.style.display='none';
+      layer._inst=inst;
+      setDebug('scene ok');
+    }catch(e){
+      console.warn('场景挂载失败，回退封面图',e);
+      setDebug('scene fail: '+(e.message||e));
+    }
+  }
+
+  // 声音开关是全局的：作用在所有视频图层上，只改 muted 不重建元素（重建会把进度归零）
+  function applySound(){
+    // 网页壁纸里的音轨不在 <video> 上，整窗静音才管得住
+    try{ if(window.WF_AUDIO) window.WF_AUDIO.setMuted(!videoSound); }catch(e){ /* 没有桥就只靠 video.muted */ }
+    for(const l of layers){
+      l.querySelectorAll('video').forEach(v=>{
+        if(v.muted===!videoSound) return;
+        v.muted=!videoSound;
+        if(videoSound&&v.paused) v.play().catch(()=>{});
+      });
+    }
+  }
+
+  // 采样视频片源的真实帧率，上报后端供「正在播放」页显示。
+  // 用 requestVideoFrameCallback 而不是数 rAF：rAF 是显示器刷新率，不是片源帧率。
+  // 攒够若干“呈现时间戳”的间隔取中位数再上报，避免头几帧抖动报出一个离谱数字。
+  function reportVideoFps(fps){
+    if(!Number.isFinite(fps)||fps<=0||fps>240) return;
+    const n=Math.round(fps);
+    if(n===measuredVideoFps) return;
+    measuredVideoFps=n;
+  }
+
+  function startVideoFpsProbe(v, layer){
+    if(typeof v.requestVideoFrameCallback!=='function') return;
+    const deltas=[];
+    let last=null;
+    const cb=(now,meta)=>{
+      if(layer._dead||v.paused){ last=null; if(!layer._dead) try{v.requestVideoFrameCallback(cb);}catch(e){} return; }
+      // mediaTime 是这一帧在片源里的时间戳，比 now 稳定（now 含渲染等待抖动）
+      const t=meta&&typeof meta.mediaTime==='number'?meta.mediaTime:now/1000;
+      if(last!==null){ const d=t-last; if(d>0&&d<1) deltas.push(d); if(deltas.length>40) deltas.shift(); }
+      last=t;
+      if(deltas.length>=24){
+        const s=deltas.slice().sort((a,b)=>a-b);
+        const median=s[Math.floor(s.length/2)];
+        if(median>0) reportVideoFps(1/median);
+        deltas.length=0;
+      }
+      try{ v.requestVideoFrameCallback(cb); }catch(e){}
+    };
+    try{ v.requestVideoFrameCallback(cb); }catch(e){}
+  }
+
+  function paintVideo(w, layer){
+    const v=document.createElement('video');
+    v.src=mediaUrl(w,w.main_file);
+    v.autoplay=true; v.muted=!videoSound; v.loop=true; v.playsInline=true;
+    v.preload='auto'; v.disablePictureInPicture=true;
+    v.addEventListener('error',()=>setDebug('video error'));
+    layer.appendChild(v);
+    const p=v.play();
+    if(p&&p.catch) p.catch(()=>setDebug('video play blocked'));
+    else setDebug('video ok');
+    layer._video=v;
+    startVideoFpsProbe(v,layer);
+  }
+
+  function paintWeb(w, layer){
+    const f=document.createElement('iframe');
+    f.src=mediaUrl(w,w.main_file);
+    // 壁纸页是第三方内容：不给 allow-same-origin（否则它能摘掉自己的沙箱、反过来操纵宿主）。
+    // 属性推送与光标事件都走 postMessage；页面里的桥由后端注入（wf-bridge.js），壁纸包零改动。
+    f.setAttribute('sandbox','allow-scripts');
+    f.setAttribute('scrolling','no');
+    f.addEventListener('error',()=>setDebug('iframe error'));
+    // 网页壁纸初始化要加载几 MB 素材，等它自己跑完再推，否则监听器还没注册
+    f.addEventListener('load',()=>{
+      if(layer._dead) return;
+      const r=pushProps(layer);
+      pushRenderFps(layer);   // WE 协议：把全局节拍下发给壁纸脚本
+      setDebug('web load, props '+r);
+    });
+    layer.appendChild(f);
+    layer._iframe=f;
+    setDebug('web loading');
+  }
+
+  function paintImage(w, file, layer){
+    const img=document.createElement('img');
+    img.src=mediaUrl(w,file);
+    img.addEventListener('error',()=>setDebug('image error'));
+    layer.appendChild(img);
+    setDebug('image ok');
+  }
+
+  async function render(w, style){
+    const layer=newLayer(style);
+    layer._id=w.id;
+    const old=layers; layers=[layer];
+    curKind=w.type; curWall={w,style};
+    held=false; lastPt=null;
+    applyFrame(layer,curFrame());
+    setDebug('render '+(w.type||'?'));   // 每次换壁纸都刷一次调试行（视频走 play() 成功分支时不会再调）
+
+    if(w.type==='scene') await paintScene(w, layer);
+    else if(w.type==='video') paintVideo(w, layer);
+    else if(w.type==='web') paintWeb(w, layer);
+    else if(IMG_EXT.test(w.main_file||'')) paintImage(w, w.main_file, layer);
+    else paintImage(w, w.cover, layer);
+
+    // 先强制一次回流，让浏览器记住 opacity:0 这个起始态；
+    // 下一帧再打开不透明度，transition 才会真的从 0 走到 1（否则会被合并成"直接显示"）
+    void layer.offsetHeight;
+    requestAnimationFrame(()=>{ layer.classList.add('on'); });
+    if(old.length) retireLayers(old);
+    syncCursorFeed();          // 换了壁纸类型，按键旁听跟着开关
+  }
+
+  // ---------- 暂停 ----------
+  // 视频：pause 即可（保留播放进度）；场景/网页/图片：整层卸载，彻底停渲染
+  function recomputePaused(){
+    const want=pausedAuto||pausedManual;
+    if(want===paused) return;
+    paused=want;
+    setDebug();
+    if(!curWall) return;
+    const top=topLayer();
+    if(paused){
+      if(top){
+        const v=top.querySelector('video');
+        if(v){ v.pause(); }
+        else { dropAllLayers(); }
+      }
+    }else{
+      if(top){
+        const v=top.querySelector('video');
+        if(v){ if(v.paused) v.play().catch(()=>{}); }
+        else if(top._id!==curWall.w.id){ render(curWall.w, curWall.style); }
+      }else{
+        render(curWall.w, curWall.style);
+      }
+    }
+  }
+
+  function setPausedAuto(p){ pausedAuto=!!p; recomputePaused(); }
+  function setPausedManual(p){ pausedManual=!!p; recomputePaused(); }
+
+  // ---------- 全局渲染节拍（WE 同款，所有类型统一） ----------
+  // 后端 render_fps 是唯一权威：轮询与 SSE 都把值送到这里。切换壁纸不动它。
+  // 三条链路各自执行：内核视频由主进程下发 fps 命令；场景在此重挂载；网页经桥下发。
+  function applyRenderFps(fps){
+    const nf=Number(fps);
+    if(![30,60,72,144].includes(nf)||nf===curRenderFps) return;
+    curRenderFps=nf;
+    const top=topLayer();
+    if(curWall&&curWall.w&&curWall.w.type==='scene'&&top&&!top._dead){
+      // WebWallGL 实例支持热改节拍：优先原地 setFps，避免整层重挂载闪一下。
+      // 老运行时没有该接口时再回退到重挂载。
+      if(top._inst&&typeof top._inst.setFps==='function'){
+        try{ top._inst.setFps(nf); }catch(e){ render(curWall.w,curWall.style); }
+      }else{
+        render(curWall.w,curWall.style);
+      }
+    }else if(curWall&&curWall.w&&curWall.w.type==='web'&&top&&!top._dead){
+      pushRenderFps(top);   // 让遵守 WE 协议的壁纸脚本按新节拍节流
+    }
+    // 视频/images 走内核：主进程 renderWatch 会从后端读同一个值下发 fps 命令。
+  }
+
+  // ---------- 当前壁纸 / 调节项 / 变换 ----------
+
+  async function loadWall(id){
+    const wr=await fetch(API+'/wallpapers/'+id,{cache:'no-store'});
+    const wj=await wr.json();
+    if(wj.code!==0||!wj.data) return null;
+    return wj.data;
+  }
+
+  async function loadProps(id){
+    try{
+      const r=await fetch(API+'/play/props/'+id,{cache:'no-store'});
+      const j=await r.json();
+      if(j.code===0) propsAll=j.data.all||{};
+    }catch(e){ propsAll={}; }
+    return propsAll;
+  }
+
+  let lastPropsId=null;
+  async function ensureProps(id){
+    if(lastPropsId===id) return propsAll;
+    lastPropsId=id;
+    propsAll={};
+    return loadProps(id);
+  }
+
+  async function tick(){
+    try{
+      const r=await fetch(API+'/play/state',{cache:'no-store'});
+      const j=await r.json();
+      if(j.code!==0) throw new Error(j.message||'查询失败');
+      const d=j.data;
+      const id=d.id??null;
+
+      // 手动暂停以服务端为准：多个窗口同时开着时，谁按都一致
+      if(!!d.paused!==pausedManual){ pausedManual=!!d.paused; recomputePaused(); }
+      // 点击开关跟壁纸无关，没壁纸时也要同步（主进程据此决定要不要读全局左键）
+      if(d.mouse&&!!d.mouse.click!==mouseClick){ mouseClick=!!d.mouse.click; syncCursorFeed(); }
+      // 声音同理：换壁纸时也要保持用户选的那个状态
+      if(d.sound&&!!d.sound.sound!==videoSound){ videoSound=!!d.sound.sound; applySound(); }
+      // 全局渲染节拍由后端下发，轮询与 SSE 走同一套处理
+      applyRenderFps(d.renderFps);
+
+      if(id===null){
+        if(curId!==null||curKind!==null){ dropAllLayers(); curId=null; curKind=null; curWall=null; }
+        hint.style.display='grid'; setDebug('none');
+        return;
+      }
+      hint.style.display='none';
+
+      const style=d.style||'fill';
+      const frameKey=JSON.stringify(d.frame||null);
+      const frameChanged=frameKey!==JSON.stringify(manualFrame);
+      if(frameChanged){ manualFrame=d.frame||null; }
+
+      if(id===curId&&style===curStyle){
+        // 同一条壁纸：只处理变换变化，不重建图层（重建会把场景/网页整个重载，画面会闪）
+        if(frameChanged){
+          const top=topLayer();
+          if(top&&manualFrame){ top.classList.add('animated'); applyFrame(top,manualFrame); }
+        }
+        return;
+      }
+
+      curId=id;
+      curStyle=style;
+      const w=await loadWall(id);
+      if(!w){ setDebug('壁纸读取失败'); return; }
+      curWall={w:w,style};
+      await ensureProps(id);
+      if(paused) return;                        // 暂停中，等恢复再画
+      render(w,style);
+    }catch(e){
+      setDebug('后端未连接：'+(e.message||e));
+    }
+  }
+
+  // ---------- SSE：拖动滑块时立刻下发 ----------
+  // 断线自动重连（EventSource 自带）；长时间连不上就靠 tick 的 1.5s 轮询兜底，
+  // 所以最坏情况只是"调整慢半秒"，不会出现画面和滑块长期不一致。
+  function connectStream(){
+    let es;
+    try{ es=new EventSource(API+'/play/stream'); }catch(e){ return; }
+    es.onmessage=(ev)=>{
+      let m;
+      try{ m=JSON.parse(ev.data); }catch(e){ return; }
+      if(m.type==='init'){
+        if(m.paused!==undefined&&!!m.paused!==pausedManual){ pausedManual=!!m.paused; recomputePaused(); }
+        if(m.mouse&&!!m.mouse.click!==mouseClick){ mouseClick=!!m.mouse.click; syncCursorFeed(); }
+        if(m.sound&&!!m.sound.sound!==videoSound){ videoSound=!!m.sound.sound; applySound(); }
+        applyRenderFps(m.renderFps);
+        if(m.id!=null&&m.id===curId){
+          if(m.props){ propsAll=m.props; const top=topLayer(); if(top&&top._iframe) setDebug('init props '+pushProps(top)); }
+          if(m.frame){ manualFrame=m.frame; const top=topLayer(); if(top){ top.classList.add('animated'); applyFrame(top,m.frame); } }
+        }
+        return;
+      }
+      if(m.type==='props'){
+        if(m.id!==curId) return;
+        propsAll=m.all||{};
+        const top=topLayer();
+        if(top&&top._iframe) setDebug('props '+pushProps(top));
+        return;
+      }
+      if(m.type==='frame'){
+        if(m.id!==curId) return;
+        manualFrame=m.frame;
+        const top=topLayer();
+        if(top&&manualFrame){ top.classList.add('animated'); applyFrame(top,manualFrame); }
+        return;
+      }
+      if(m.type==='mouse'){
+        mouseClick=!!m.click;
+        syncCursorFeed();
+        return;
+      }
+      if(m.type==='sound'){
+        videoSound=!!m.sound;
+        applySound();
+        return;
+      }
+      if(m.type==='paused'){
+        pausedManual=!!m.paused;
+        recomputePaused();
+        return;
+      }
+      if(m.type==='render-fps'){
+        applyRenderFps(m.fps);
+        return;
+      }
+    };
+    es.onerror=()=>setDebug('SSE 断开，回落轮询');
+  }
+
+  // 贴到桌面底层后 Chromium 会误判"被遮挡"，这里不做任何降频处理
+  document.addEventListener('visibilitychange',()=>{ /* no-op */ });
+
+  window.WF_DESKTOP={
+    get id(){return curId},
+    get style(){return curStyle},
+    get kind(){return curKind},
+    get paused(){return paused},
+    get layerCount(){return layers.length},
+    get sound(){return videoSound},
+    setPaused:setPausedAuto,        // 主进程的全屏暂停走这里
+    refresh:tick,
+    _pushProps:()=>pushProps(topLayer()),
+  };
+
+  connectCursor();
+  connectStream();
+  applySound();       // 默认静音：先把整窗按 mute 起来，别让壁纸一上来就出声
+  tick();
+  setInterval(tick,1500);
+})();
+</script>
+</body>
+</html>
