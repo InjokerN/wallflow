@@ -8,7 +8,10 @@ const user32 = koffi.load('user32.dll');
 
 const FindWindowA = user32.func('uintptr_t FindWindowA(const char *cls, const char *win)');
 const FindWindowExA = user32.func('uintptr_t FindWindowExA(uintptr_t parent, uintptr_t child, const char *cls, const char *win)');
-const SendMessageTimeoutA = user32.func('intptr_t SendMessageTimeoutA(uintptr_t hwnd, uint32_t msg, uintptr_t wParam, intptr_t lParam, uint32_t flags, _Out_ void *result)');
+// 7 个参数，缺一不可：uTimeout(uint32) 是第 6 个，lpdwResult 是第 7 个。
+// 真实类型是 PDWORD_PTR（x64=8字节），必须用 uintptr_t* + 8 字节缓冲；
+// 漏 uTimeout 会让 lpdwResult 落到栈垃圾值上，函数写入时直接 0xc0000005 崩溃（换机必现）。
+const SendMessageTimeoutA = user32.func('intptr_t SendMessageTimeoutA(uintptr_t hwnd, uint32_t msg, uintptr_t wParam, intptr_t lParam, uint32_t flags, uint32_t timeout, _Out_ uintptr_t *result)');
 const SetParent = user32.func('uintptr_t SetParent(uintptr_t child, uintptr_t parent)');
 const GetParent = user32.func('uintptr_t GetParent(uintptr_t hwnd)');
 // 顶层窗口的 GetParent 返回的是 owner（通常为 0），GetAncestor(GA_PARENT) 才是真正的父窗口
@@ -157,7 +160,7 @@ export function findWallpaperHost() {
   if (worker) return { host: worker, className: className(worker), via: 'workerw-child' };
 
   // ② 经典结构：戳一下让 explorer 生成壁纸层，再找 Progman 后面的顶层 WorkerW
-  const out = Buffer.alloc(16);
+  const out = Buffer.alloc(8); // PDWORD_PTR = 指针宽度，x64 为 8 字节
   try { SendMessageTimeoutA(progman, WM_SPAWN_WORKER, 0xD, 0x1, 0, 1000, out); } catch { /* 忽略 */ }
 
   worker = FindWindowExA(0, progman, 'WorkerW', null);

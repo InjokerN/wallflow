@@ -1247,6 +1247,8 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on('window-all-closed', () => { /* 托盘常驻，不退出 */ });
   app.on('before-quit', () => {
+    // 正常退出：清掉引导层写下的运行标记；留着则说明上次是崩溃退出
+    try { if (process.env.WF_RUN_MARK) fs.unlinkSync(process.env.WF_RUN_MARK); } catch { /* 忽略 */ }
     quitting = true;
     clearInterval(watchdog);
     clearInterval(backendWatch);

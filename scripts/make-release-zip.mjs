@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'release', 'WallFlow');
-const OUT = path.join(ROOT, 'release', 'WallFlow-v0.2.0-win-x64.zip');
+const OUT = path.join(ROOT, 'release', 'WallFlow-v0.3.0-win-x64.zip');
 
 if (!fs.existsSync(SRC)) { console.error('找不到成品目录：' + SRC); process.exit(1); }
 
