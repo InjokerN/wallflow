@@ -99,6 +99,33 @@ try {
   console.log('[clean] 清空 library_dir 跳过：' + e.message);
 }
 
+// ── 发布包必须是空库：开发机的壁纸/收藏/扫描缓存绝不能随包分发 ──
+// 只清「用户数据」，保留表结构和默认设置（render_fps 等），这样首次启动直接用干净空库，
+// 不会出现「包里有 3 张缺失壁纸 + 一个收藏」或开机黑屏盖住用户桌面的问题。
+try {
+  const dbFile = path.join(DATA, 'wallflow.db');
+  if (fs.existsSync(dbFile)) {
+    const { DatabaseSync } = await import('node:sqlite');
+    const wdb = new DatabaseSync(dbFile);
+    const beforeWall = wdb.prepare('SELECT COUNT(*) n FROM wallpapers').get().n;
+    const beforeWe = wdb.prepare('SELECT COUNT(*) n FROM we_items').get().n;
+    wdb.exec('BEGIN');
+    wdb.exec('DELETE FROM wallpapers');
+    wdb.exec('DELETE FROM we_items');
+    // 只清运行状态键，保留 render_fps / scene_fps 等用户可配置的默认值
+    for (const k of ['current_wallpaper', 'wallpaper_style', 'wp_props', 'wp_frame',
+      'play_paused', 'play_mouse_click', 'play_video_sound', 'we_extra_dirs']) {
+      wdb.prepare('DELETE FROM app_state WHERE key = ?').run(k);
+    }
+    wdb.exec('DELETE FROM sqlite_sequence WHERE name IN (\'wallpapers\',\'we_items\')');
+    wdb.exec('COMMIT');
+    wdb.close();
+    console.log(`[clean] 已重置内置库为空：清掉 ${beforeWall} 张壁纸、${beforeWe} 条 WE 扫描缓存及当前壁纸状态`);
+  }
+} catch (e) {
+  console.log('[clean] 重置内置库跳过：' + e.message);
+}
+
 // 只做体检报告，不自动删：数据库里同标题的重复条目可能是你自己烘焙的第二版
 try {
   const dbFile = path.join(DATA, 'wallflow.db');

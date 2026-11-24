@@ -75,7 +75,17 @@ router.post('/restore', onlyLocal, async (req, res) => {
   const row = db.prepare('SELECT * FROM wallpapers WHERE id = ?').get(id);
   if (!row) return success(res, { id, renderBy: null, restored: false, reason: '壁纸记录已删除' });
   const media = coreMedia(row);
-  const renderBy = media ? 'core' : 'desktop';
+  // 网页/场景由浏览器壁纸窗口渲染（desktop 归属）；素材缺失则绝不能认领桌面层——
+  // 否则空白 canvas 会盖住用户原本的系统壁纸，表现为「打开就纯黑」。
+  const isBrowserType = row.type === 'web' || row.type === 'scene';
+  const renderBy = media ? 'core' : (isBrowserType ? 'desktop' : null);
+  if (!media && !isBrowserType) {
+    // 素材丢了：不接管桌面层，让原系统壁纸原样保留
+    return success(res, {
+      id, type: row.type, media: null, renderBy: null, restored: false,
+      reason: '素材文件已缺失，需重新导入；已保留原桌面壁纸',
+    });
+  }
   const ok = await notifyCore({
     cmd: media ? 'play' : 'hide', id, type: row.type, path: media, renderBy,
     style: db.prepare("SELECT value FROM app_state WHERE key = 'wallpaper_style'").get()?.value || 'fill',
@@ -83,10 +93,7 @@ router.post('/restore', onlyLocal, async (req, res) => {
   });
   success(res, {
     id, type: row.type, media: media || null, renderBy, restored: ok,
-    reason: media ? undefined
-      : (row.type === 'web' || row.type === 'scene'
-          ? '网页/场景壁纸由浏览器壁纸窗口渲染'
-          : '素材文件已缺失，需重新导入'),
+    reason: media ? undefined : '网页/场景壁纸由浏览器壁纸窗口渲染',
   });
 });
 
@@ -168,11 +175,13 @@ router.get('/current', (req, res) => {
   const id = Number(get('current_wallpaper')) || null;
   const row = id ? db.prepare('SELECT * FROM wallpapers WHERE id = ?').get(id) : null;
   const media = row ? coreMedia(row) : null;
+  const isBrowserType = row?.type === 'web' || row?.type === 'scene';
   success(res, {
     id, style: get('wallpaper_style'),
     type: row?.type || null,
     media: media || null,
-    renderBy: media ? 'core' : (row ? 'desktop' : null),
+    // 素材缺失的视频/图片不能判 desktop：看门狗会据此建空白壁纸窗口盖住原桌面（黑屏）
+    renderBy: media ? 'core' : (isBrowserType ? 'desktop' : null),
   });
 });
 
