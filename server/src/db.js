@@ -85,6 +85,22 @@ if (!wallpaperCols.has('favorite')) {
   db.exec('ALTER TABLE wallpapers ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0');
 }
 
+// 文件夹（逻辑分组）：只是壁纸的归属标签，绝不动磁盘上的物理目录。
+// parent_id 支持嵌套（NULL = 根）；wallpapers.folder_id 指向文件夹，NULL = 未分组（"全部"）。
+// 物理目录是 类型/目录名/ 结构，被导出/删除/内核播放路径强依赖，移动物理文件会串断整条链路。
+if (!wallpaperCols.has('folder_id')) {
+  db.exec('ALTER TABLE wallpapers ADD COLUMN folder_id INTEGER');
+}
+db.exec(`
+  CREATE TABLE IF NOT EXISTS folders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    parent_id INTEGER,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY(parent_id) REFERENCES folders(id) ON DELETE CASCADE
+  );
+`);
+
 // 应用状态：当前桌面壁纸是哪条、用的什么样式（后期「正在播放」页与套壳开机恢复都要读它）
 db.exec(`
   CREATE TABLE IF NOT EXISTS app_state (

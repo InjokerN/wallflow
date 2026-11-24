@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import wallpapersRouter from './routes/wallpapers.js';
+import foldersRouter from './routes/folders.js';
 import compatRouter from './routes/compat.js';
 import bakeRouter from './routes/bake.js';
 import applyRouter from './routes/apply.js';
@@ -68,6 +69,7 @@ app.get('/api/health', (req, res) => res.json({ code: 0, message: 'ok', data: { 
 
 // 壁纸接口
 app.use('/api/v1/wallpapers', wallpapersRouter);
+app.use('/api/v1/folders', foldersRouter);
 
 // Wallpaper Engine 双向兼容接口（整包导入/导出）
 app.use('/api/v1/compat', compatRouter);

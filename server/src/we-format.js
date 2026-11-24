@@ -87,6 +87,11 @@ export function parseProjectJson(file) {
   if (!type) {
     throw new Error(`project.json 缺少可识别的 type（实际值 ${JSON.stringify(raw.type)}）`);
   }
+  // WE 官方 project.json 用 workshopid 记录创意工坊序列号（数字或数字字符串，如 "12345678"）。
+  // 只保留纯数字：既能当目录名后缀，也挡住注入（如 "../../x" 或乱字符）。
+  // 没有 / 非法的 id 一律当作「无 id」，导入走随机 ms 命名。
+  const workshopRaw = String(raw.workshopid ?? '').trim();
+  const workshopId = /^[0-9]+$/.test(workshopRaw) ? workshopRaw : '';
   return {
     type,
     title: String(raw.title || '未命名壁纸'),
@@ -95,6 +100,7 @@ export function parseProjectJson(file) {
     description: String(raw.description || ''),
     tags: Array.isArray(raw.tags) ? raw.tags.map(String) : [],
     author: String(raw.author || ''),
+    workshopId,
     raw, // 保留原始对象，便于导出时原样写回
   };
 }

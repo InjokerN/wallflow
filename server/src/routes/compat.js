@@ -13,6 +13,7 @@ import {
   pickMainFile, pickPreview, copyDirRecursive, JUNK_NAMES, isJunkPath,
 } from '../we-format.js';
 import { isInside, registerWallpaper, installWallDir } from '../we-install.js';
+import { workshopFolder } from '../naming.js';
 
 const router = Router();
 const success = (res, data) => res.json({ code: 0, message: 'ok', data });
@@ -91,8 +92,13 @@ router.post('/import/zip', (req, res) => {
       const zipName = path.basename(req.file.originalname || '', path.extname(req.file.originalname || ''));
       const rootIsWall = path.resolve(found.wallDir) === path.resolve(tmpRoot);
       const wanted = rootIsWall ? (zipName || `imported-${Date.now()}`) : path.basename(found.wallDir);
+      // 带 workshopid 的 WE 整包用官方序列号当目录名（S/V/W-we-<id>），同一包重复导入会判重；
+      // 没有 id 就传空 opts，走 naming.js 的随机 ms 命名，行为不变。
+      const installOpts = meta.workshopId
+        ? { folderName: workshopFolder(meta.type, meta.workshopId) }
+        : {};
 
-      const result = installWallDir(found.wallDir, meta, mainFile, preview, wanted);
+      const result = installWallDir(found.wallDir, meta, mainFile, preview, wanted, installOpts);
       success(res, { ...result, title: meta.title, type: meta.type });
     } catch (e) {
       fail(res, 400, '导入失败：' + e.message);
@@ -164,8 +170,12 @@ router.post('/import/folder', (req, res) => {
       const wanted = rootIsWall
         ? (req.body.folderName || `imported-${Date.now()}`)
         : path.basename(found.wallDir);
+      // 同 ZIP 路径：有 workshopid 就用官方序列号命名，没有就照旧随机 ms。
+      const installOpts = meta.workshopId
+        ? { folderName: workshopFolder(meta.type, meta.workshopId) }
+        : {};
 
-      const result = installWallDir(found.wallDir, meta, mainFile, preview, wanted);
+      const result = installWallDir(found.wallDir, meta, mainFile, preview, wanted, installOpts);
       success(res, { ...result, title: meta.title, type: meta.type });
     } catch (e) {
       fail(res, 400, '导入失败：' + e.message);

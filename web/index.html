@@ -53,7 +53,7 @@ h1{font-size:28px;letter-spacing:-.8px;margin:5px 0 6px}h2{font-size:19px;letter
 .primary:hover{filter:brightness(1.1);transform:translateY(-1px)}.secondary{background:#ffffff12;border:1px solid #ffffff20;padding:9px 14px;border-radius:9px;color:white;font-size:12px}
 .hero .secondary{margin-left:7px}
 .chips{display:flex;gap:8px;flex-wrap:wrap}.chip{background:#1b1e28;border:1px solid var(--line);color:#aeb3c2;border-radius:20px;padding:7px 13px;font-size:11px}.chip:hover,.chip.active{background:#ffffff12;border-color:#aeb2b866;color:#f0f0f0}
-.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
 .wall-card{min-width:0;background:#191c25;border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:.2s;cursor:pointer;position:relative}
 .wall-card:hover{transform:translateY(-4px);border-color:#ffffff35;box-shadow:0 12px 30px #0004}
 .thumb{height:160px;position:relative;overflow:hidden;background:#292d3b}.thumb img{width:100%;height:100%;object-fit:cover;transition:transform .5s}.wall-card:hover .thumb img{transform:scale(1.045)}
@@ -62,7 +62,7 @@ h1{font-size:28px;letter-spacing:-.8px;margin:5px 0 6px}h2{font-size:19px;letter
 .card-info{padding:10px 12px 12px}.card-title{font-size:12px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.meta{display:flex;align-items:center;justify-content:space-between;color:#858b9c;font-size:10px;margin-top:6px}
 .meta span{display:flex;align-items:center;gap:5px}.tagline{display:flex;gap:6px;margin-top:10px}.mini-tag{font-size:12px;color:#9ba1b2;background:#ffffff09;padding:4px 8px;border-radius:5px}
 .toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:22px 0 16px}.toolbar-left{display:flex;gap:7px;flex-wrap:wrap}.select{background:#1b1e28;border:1px solid var(--line);color:#c7cad5;border-radius:8px;padding:8px 11px;font-size:11px;outline:0}
-.library-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.library-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
 .empty{grid-column:1/-1;text-align:center;padding:65px 15px;color:var(--muted);background:#191c25;border:1px dashed var(--line);border-radius:14px}
 .page-title-row{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:24px}
 .monitor-layout{display:grid;grid-template-columns:1.4fr .8fr;gap:18px}
@@ -137,9 +137,9 @@ h1{font-size:28px;letter-spacing:-.8px;margin:5px 0 6px}h2{font-size:19px;letter
 #cloudDetail{z-index:22}
 .toast{position:fixed;bottom:25px;left:50%;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#292d3b;border:1px solid #ffffff18;border-radius:10px;padding:11px 16px;color:#eee;font-size:12px;z-index:40;transition:.25s;box-shadow:0 10px 30px #0006}.toast.show{opacity:1;transform:translate(-50%,0)}
 .mobile-menu{display:none}
-@media(max-width:1100px){.grid,.library-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.content{padding-left:25px;padding-right:25px}.topbar{padding:0 25px}}
-@media(max-width:800px){:root{--sidebar:0px}.sidebar{width:250px;transform:translateX(-100%);transition:.25s;box-shadow:15px 0 40px #0008}.sidebar.open{transform:none}.main{margin:0;width:100%}.mobile-menu{display:grid}.topbar{padding:0 16px;height:65px}.content{padding:22px 16px 45px}.grid,.library-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{height:280px}.hero h2{font-size:25px}.monitor-layout,.settings-layout{grid-template-columns:1fr}.modal{grid-template-columns:1fr;grid-template-rows:none;height:auto;max-height:88vh;overflow:auto}.modal-image{min-height:250px}.modal-info{padding:20px}}
-@media(max-width:480px){.grid,.library-grid{grid-template-columns:1fr}.thumb{height:190px}.status{display:none}.hero-content{left:22px;right:18px}.hero h2{font-size:23px}.toolbar{align-items:flex-start;flex-direction:column}.monitor-canvas{gap:8px;padding:15px}.monitor.one{width:190px;height:120px}.monitor.two{width:125px;height:85px}}
+@media(max-width:1100px){.grid,.library-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}.content{padding-left:25px;padding-right:25px}.topbar{padding:0 25px}}
+@media(max-width:800px){:root{--sidebar:0px}.sidebar{width:250px;transform:translateX(-100%);transition:.25s;box-shadow:15px 0 40px #0008}.sidebar.open{transform:none}.main{margin:0;width:100%}.mobile-menu{display:grid}.topbar{padding:0 16px;height:65px}.content{padding:22px 16px 45px}.grid,.library-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}.hero{height:280px}.hero h2{font-size:25px}.monitor-layout,.settings-layout{grid-template-columns:1fr}.modal{grid-template-columns:1fr;grid-template-rows:none;height:auto;max-height:88vh;overflow:auto}.modal-image{min-height:250px}.modal-info{padding:20px}}
+@media(max-width:480px){.grid,.library-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}.thumb{height:190px}.status{display:none}.hero-content{left:22px;right:18px}.hero h2{font-size:23px}.toolbar{align-items:flex-start;flex-direction:column}.monitor-canvas{gap:8px;padding:15px}.monitor.one{width:190px;height:120px}.monitor.two{width:125px;height:85px}}
 </style>
 
 <style id="wallflow-v3">
@@ -190,8 +190,8 @@ h2{font-weight:600;letter-spacing:-.55px}
 .secondary:hover{background:#ffffff17}
 .chips{gap:7px}.chip{background:transparent;border:1px solid #ffffff16;color:#999da0;border-radius:30px;padding:7px 14px;font-size:10px}
 .chip:hover,.chip.active{background:#e6e7e4;color:#171819;border-color:#e6e7e4}
-.grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:22px}
-.library-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:22px}
+.library-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
 .wall-card{background:transparent;border:0;border-radius:12px;overflow:hidden;transition:transform .28s ease;box-shadow:none}
 .wall-card:hover{transform:translateY(-3px);border-color:transparent;box-shadow:none}
 .thumb{aspect-ratio:1/1;height:auto;border-radius:11px;background:#191b1d;overflow:hidden}
@@ -208,9 +208,11 @@ h2{font-weight:600;letter-spacing:-.55px}
 .fav{right:11px;top:11px;background:#0b0c0bc9;border:1px solid #ffffff16;color:#d7d8d5;opacity:.82;transition:.2s}
 .fav:hover{opacity:1;background:#242628}
 .fav.liked{color:#fff}
-.card-info{padding:12px 2px 3px}
+.card-info{padding:6px 2px 3px}
 /* 卡片改版：标题压在图片底部渐变遮罩上（半透明暗色） */
-.wall-card .thumb .title-overlay{position:absolute;left:0;right:0;bottom:0;padding:26px 10px 8px;background:linear-gradient(to top,#000c,#0006 60%,transparent);color:#fff;font-size:13px;font-weight:600;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;z-index:1;pointer-events:none}
+/* 标题：右侧留出删除按钮位置；垂直方向与删除按钮中心对齐（按钮 bottom:10px 高 28px，中心在 bottom:24px；
+   文字行高约 17px，故 padding-bottom 取 16px 让文字中心 ≈ bottom:24px）。渐变背景仍铺满整张卡片。 */
+.wall-card .thumb .title-overlay{position:absolute;left:0;right:0;bottom:0;padding:26px 46px 16px 10px;background:linear-gradient(to top,#000c,#0006 60%,transparent);color:#fff;font-size:13px;font-weight:600;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;z-index:1;pointer-events:none}
 .wall-card .thumb .title-overlay .to-author{display:block;font-size:11px;font-weight:400;opacity:.85;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wall-card .card-author{font-size:13px;color:#c9cdd4;margin-top:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
 
@@ -218,6 +220,60 @@ h2{font-weight:600;letter-spacing:-.55px}
 .del-btn{position:absolute;right:10px;bottom:10px;z-index:2;width:28px;height:28px;display:grid;place-items:center;border-radius:8px;background:#0b0c0bcc;border:1px solid #ffffff26;color:#e6e7e4;cursor:pointer;opacity:.55;transition:opacity .2s,background .2s,border-color .2s;backdrop-filter:blur(4px)}
 .wall-card:hover .del-btn{opacity:.95}
 .del-btn:hover{opacity:1;background:#e05252;border-color:#e05252;color:#fff}
+
+/* ---- 文件夹：筛选行左侧的展开按钮 + 悬浮浮层（不挤占卡片位置）---- */
+.folder-toggle-btn{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;height:34px;padding:0 12px;border-radius:9px;border:1px solid #ffffff1c;background:#14161c;color:#d7d9de;font-size:12px;cursor:pointer;white-space:nowrap}
+.folder-toggle-btn:hover{background:#1e212b;color:#fff}
+.folder-toggle-btn.active{border-color:#5b7fd4;color:#cfe0ff}
+.folder-toggle-badge{font-size:10px;color:#7d838d}
+.folder-nav-btn{flex:0 0 auto;height:34px;padding:0 12px;border-radius:9px;border:1px solid #ffffff1c;background:#14161c;color:#d7d9de;font-size:12px;cursor:pointer;white-space:nowrap}
+.folder-nav-btn:hover{background:#1e212b;color:#fff;border-color:#ffffff33}
+/* 筛选行：默认导航按钮与筛选同行；进入文件夹后筛选换到按钮下方一行 */
+.lib-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:0 0 14px}
+.lib-toolbar-nav{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.lib-toolbar-filter{display:flex;align-items:center;gap:12px;flex:1 1 320px;min-width:0}
+.lib-toolbar.in-folder .lib-toolbar-filter{flex-basis:100%;margin-top:2px}
+.folder-overlay{position:fixed;inset:0;z-index:9000;background:#05060b66;backdrop-filter:blur(2px);display:none;pointer-events:none}
+.folder-overlay.open{display:block}
+/* 遮罩只做视觉变暗、不拦截事件：这样浮层打开时仍能拖动已框选的卡片到文件夹。
+   关闭靠 ✕ / 再点展开按钮 / 点浮层外围 / Esc；浮层本身可交互。 */
+.folder-flyout{position:fixed;left:0;top:0;width:220px;max-height:min(560px,calc(100vh - 96px));display:flex;flex-direction:column;overflow:hidden;background:#14161c;border:1px solid #ffffff22;border-radius:13px;box-shadow:0 18px 50px #000b,0 2px 8px #0008;padding:10px 9px;animation:folderPop .16s ease-out;pointer-events:auto}
+@keyframes folderPop{from{transform:translateY(-8px) scale(.98);opacity:.3}to{transform:none;opacity:1}}
+/* 文件夹树区限制高度并按需出滚动条：max-height + overflow-y:auto，内容不超则浏览器不出滚动条 */
+.folder-flyout .folder-tree{flex:1;min-height:0;max-height:min(470px,calc(100vh - 190px));overflow-y:auto;overflow-x:hidden}
+.folder-flyout .folder-tree::-webkit-scrollbar,.folder-picker::-webkit-scrollbar{width:8px}
+.folder-flyout .folder-tree::-webkit-scrollbar-thumb,.folder-picker::-webkit-scrollbar-thumb{background:#ffffff24;border-radius:8px}
+.folder-flyout .folder-tree::-webkit-scrollbar-thumb:hover{background:#ffffff3d}
+.folder-pane-head{display:flex;align-items:center;gap:8px;padding:2px 6px 9px;color:#d7d9de;font-size:12px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.folder-pane-head b{flex:1}
+/* ＋/✕ 按钮：grid 居中，字符不受字体行高影响偏右下 */
+.icon-add{width:22px;height:22px;flex:0 0 22px;display:grid;place-items:center;padding:0;border-radius:6px;border:1px solid #ffffff20;background:#ffffff0a;color:#d7d9de;font-size:14px;line-height:1;cursor:pointer}
+.icon-add:hover{background:#ffffff18;color:#fff}
+.folder-close{margin-left:2px}
+/* ---- 文件夹卡片：像壁纸卡片一样显示在库网格里 ---- */
+.wall-card.folder-card{cursor:pointer}
+.wall-card.folder-card .thumb{background:#0a0b0e;border:1px solid #ffffff2b}
+.wall-card.folder-card:hover .thumb{border-color:#7f9fff8c}
+.folder-empty-thumb{position:absolute;inset:0;display:grid;place-items:center;background:#0a0b0e}
+.folder-empty-thumb svg{width:52px;height:52px;color:#4a5160}
+.folder-mini{font-size:12px;opacity:.9;margin-right:2px}
+.folder-count-tag{position:absolute;left:10px;top:10px;z-index:2;font-size:10.5px;line-height:1;padding:4px 7px;border-radius:6px;background:#0b0c0bd9;border:1px solid #ffffff26;color:#cfe0ff}
+.folder-tree{font-size:12px}
+.folder-node{display:flex;align-items:center;gap:5px;padding:6px 7px;border-radius:7px;color:#b9bdc6;cursor:pointer;user-select:none;transition:background .15s}
+.folder-node:hover{background:#ffffff0d}
+.folder-node.active{background:#ffffff16;color:#fff}
+.folder-node.drop-target{background:#5b7fd433;outline:1px dashed #7f9fff}
+.folder-node .f-arrow{width:12px;flex:0 0 12px;text-align:center;font-size:9px;color:#7d838d;transition:transform .15s}
+.folder-node .f-arrow.collapsed{transform:rotate(-90deg)}
+.folder-node .f-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.folder-node .f-count{font-size:10px;color:#7d838d;flex:0 0 auto}
+.folder-node .f-act{opacity:.55;font-size:11px;color:#9aa0aa;padding:0 3px;flex:0 0 auto}
+.folder-node:hover .f-act{opacity:1}
+.folder-node .f-act:hover{color:#fff}
+.folder-children{margin-left:14px}
+.folder-empty{padding:8px 7px;color:#6d737d;font-size:11px}
+/* 移动对话框：文件夹树复用 .folder-tree */
+.folder-picker{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:9px;padding:7px;background:#14161c}
 /* 卡片右键菜单：单例浮层，右键卡片弹出（删除 / 上传 / 设为壁纸） */
 .ctx-menu{position:fixed;z-index:10000;min-width:150px;background:#22242b;border:1px solid #3a3d45;border-radius:9px;padding:5px;display:none;box-shadow:0 8px 28px #0009}
 .ctx-menu.open{display:block}
@@ -235,7 +291,7 @@ h2{font-weight:600;letter-spacing:-.55px}
 .modal-del:hover{background:#ff8f8f1a;border-color:#ff8f8f66}
 .card-title{font-size:12px;font-weight:600;color:#e6e7e4;letter-spacing:-.1px}
 .meta{font-size:10px;color:#777c7f;margin-top:5px}
-.tagline{margin-top:8px;gap:6px;flex-wrap:wrap}.mini-tag{background:#ffffff08;color:#a8adb3;border:1px solid #ffffff12;padding:4px 9px;font-size:12px}
+.tagline{margin-top:4px;gap:6px;flex-wrap:wrap}.mini-tag{background:#ffffff08;color:#a8adb3;border:1px solid #ffffff12;padding:4px 9px;font-size:12px}
 .toolbar{margin:26px 0 20px}
 .select{background:#151719;border:1px solid #ffffff14;color:#c5c7c5;border-radius:8px;padding:8px 12px;font-size:10px}
 .page-title-row{margin-bottom:12px}
@@ -272,9 +328,15 @@ select option{background:#1b1e21;color:#e8e9e6}
 .empty{background:#121416;border-color:#ffffff17}
 .download-row{border-color:#ffffff0c}
 .toast{background:#242729;border-color:#ffffff20}
-@media(max-width:1100px){.grid,.library-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.content{padding-left:27px;padding-right:27px}.topbar{padding:0 27px}}
-@media(max-width:800px){.content{padding:23px 17px 50px}.topbar{padding:0 16px}.hero{height:320px}.hero-content{left:25px}.hero h2{font-size:31px}.grid,.library-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}}
-@media(max-width:480px){.grid,.library-grid{grid-template-columns:1fr}.hero h2{font-size:27px}.hero{height:300px}.section-head{margin-top:30px}}
+@media(max-width:1100px){.grid,.library-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}.content{padding-left:27px;padding-right:27px}.topbar{padding:0 27px}}
+@media(max-width:800px){.content{padding:23px 17px 50px}.topbar{padding:0 16px}.hero{height:320px}.hero-content{left:25px}.hero h2{font-size:31px}.grid,.library-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}}
+@media(max-width:480px){.grid,.library-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}.hero h2{font-size:27px}.hero{height:300px}.section-head{margin-top:30px}}
+/* 壁纸网格：auto-fill + minmax(240px,1fr) 已在基础定义统一，列数随宽度自动增减、无手动上限。 */
+/* 壁纸类页面解除 .content 的最大宽度：否则容器被锁在 1660px（约6列），auto-fill 再智能也排不出更多列。
+   只对我壁纸/收藏/发现三页生效，设置页等其他页仍保持原居中宽度。 */
+.content:has(#page-mywallpapers.active),
+.content:has(#page-favorites.active),
+.content:has(#page-home.active){max-width:none}
 /* 分页条：单页时隐藏，翻页/筛选复位由脚本控制 */
 .pager{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:26px;flex-wrap:wrap}
 .pager:empty{display:none}
@@ -383,7 +445,10 @@ body.wf-selecting .wall-card,body.wf-selecting .we-card{transition:none}
 /* 卡片封面必须是不可拖拽的：img 默认 draggable，按住拖动会走原生 drag，框选直接失效 */
 .wall-card img,.we-card img{-webkit-user-drag:none;user-select:none}
 .we-grid,.grid.library-grid{user-select:none}
-.wall-card.picked{outline:2px solid #c8ccd4;outline-offset:-2px}
+/* 框选高亮：只画一个框、无填充；框本身 50% 半透明蓝。
+   用伪元素盖在整张卡片(含缩略图)最上层——outline 会被 .thumb 内 z-index:2 的收藏/云按钮盖住。 */
+.wall-card.picked{position:relative}
+.wall-card.picked::after{content:"";position:absolute;inset:0;z-index:50;border:2px solid rgba(107,114,128,.5);background:transparent;border-radius:11px;pointer-events:none}
 .lib-batchbar{position:fixed;left:50%;bottom:22px;transform:translate(-50%,150%);z-index:70;display:flex;align-items:center;gap:12px;flex-wrap:wrap;max-width:calc(100vw - 40px);padding:11px 16px;background:#15171ef2;border:1px solid #ffffff26;border-radius:12px;box-shadow:0 16px 40px #0008;transition:transform .22s}
 .lib-batchbar.on{transform:translate(-50%,0)}
 .lib-batchbar .secondary{font-size:11px;padding:8px 12px}
@@ -502,7 +567,17 @@ body.wf-selecting .wall-card,body.wf-selecting .we-card{transition:none}
 </section>
 <section class="page" id="page-mywallpapers">
   <div class="page-title-row"><div><h1>我的壁纸</h1></div><div style="display:flex;gap:8px"><button class="secondary" onclick="checkHealth()">检查素材</button><button class="secondary" onclick="refreshWalls()">↻ 刷新</button></div></div>
-  <div style="display:flex;align-items:center;gap:12px;margin:0 0 14px"><div class="chips" id="tagChips" style="margin:0;flex:1;min-width:0"></div><button class="secondary we-filter-btn" data-lftoggle="my">筛选<b></b></button></div>
+  <div class="lib-toolbar" id="libToolbar">
+    <div class="lib-toolbar-nav">
+      <button class="folder-toggle-btn" id="folderToggleBtn" onclick="folderPanelOpen()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>文件夹<span class="folder-toggle-badge" id="folderBadge"></span></button>
+      <button class="folder-nav-btn" id="folderHomeBtn" style="display:none" onclick="folderOpen(null)">首页</button>
+      <button class="folder-nav-btn" id="folderBackBtn" style="display:none" onclick="folderGoUp()">返回</button>
+    </div>
+    <div class="lib-toolbar-filter">
+      <div class="chips" id="tagChips" style="margin:0;flex:1;min-width:0"></div>
+      <button class="secondary we-filter-btn" data-lftoggle="my">筛选<b></b></button>
+    </div>
+  </div>
   <div class="we-filters" id="lf-my"></div>
   <div class="grid library-grid" id="myWallGrid"></div>
   <div class="pager" id="myPager"></div>
@@ -828,12 +903,38 @@ body.wf-selecting .wall-card,body.wf-selecting .we-card{transition:none}
 <div class="te-row"><span class="te-label">主标签</span><select id="tagPrimary" class="te-select"></select></div><div class="te-row" style="align-items:center"><span class="te-label">副标签</span><div class="te-chips" id="tagSubChips"></div></div><div class="te-row"><span class="te-label"></span><select id="tagSubPick" class="te-select"><option value="">从已有标签里选…</option></select></div><div class="te-row"><span class="te-label"></span><div class="te-add"><input id="tagSubInput" class="te-input" maxlength="4" placeholder="新标签，最多 4 字" autocomplete="off"><button class="te-add-btn" id="tagSubAdd" type="button">+ 新增</button></div></div></div><button class="primary" style="width:100%;margin-top:7px" onclick="applyCurrent()">全屏预览</button><button class="secondary" style="width:100%;margin-top:9px" onclick="toggleFavCurrent()">♡ 收藏 / 取消收藏</button><div class="sub" style="font-size:10px;margin:12px 0 6px">设为桌面壁纸（当前取静态画面；动态播放需套壳后支持）</div><div style="display:flex;gap:7px"><button class="secondary" style="flex:1" onclick="applyWallpaper('fill')">填充 · 裁切铺满</button><button class="secondary" style="flex:1" onclick="applyWallpaper('fit')">适应 · 完整显示</button></div><button class="secondary modal-del" style="width:100%;margin-top:9px" onclick="deleteWallpaper(currentWall)">删除这个壁纸</button><div style="margin-top:14px;padding-top:13px;border-top:1px solid var(--line)"><div class="sub" style="font-size:10px;margin-bottom:8px">发布到云端壁纸库</div><button class="secondary" style="width:100%" onclick="cloudPublishOpen()">上传云端</button><div class="sub" id="cloudUpStatus" style="font-size:10px;margin-top:8px"></div></div><div style="margin-top:14px;padding-top:13px;border-top:1px solid var(--line)"><div class="sub" style="font-size:10px;margin-bottom:8px">Wallpaper Engine 兼容导出</div><div style="display:flex;gap:7px"><button class="secondary" style="flex:1" onclick="exportWE('zip')">导出 ZIP</button><button class="secondary" style="flex:1" onclick="exportWE('folder')">导出文件夹</button></div><div class="sub" id="exportStatus" style="font-size:10px;margin-top:8px"></div></div><div id="bakeBox" style="display:none;margin-top:14px;padding-top:13px;border-top:1px solid var(--line)"><div class="sub" style="font-size:10px;margin-bottom:8px">场景转视频（低配电脑更流畅）</div><div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap"><label class="sub" style="font-size:10px" title="先按这个时长抓满帧，再从里面找循环点截断，实际成片可能更短">时长上限 <input id="bakeDuration" type="number" value="10" min="1" max="120" style="width:52px;background:#ffffff12;border:1px solid #ffffff20;color:#fff;border-radius:6px;padding:4px 6px;font-size:11px"> 秒</label><label class="sub" style="font-size:10px">帧率 <select id="bakeFps" style="background:#ffffff12;border:1px solid #ffffff20;color:#fff;border-radius:6px;padding:4px 6px;font-size:11px"><option value="30">30</option><option value="60">60</option></select></label><button class="primary" style="flex:1;min-width:90px" onclick="startBake()">转为视频</button></div><label class="sub" style="display:flex;align-items:center;gap:6px;font-size:10px;margin-top:9px;cursor:pointer" title="在抓到的帧里找一张和第一帧几乎一样的画面，从这里截断，循环播放时看不出接缝"><input type="checkbox" id="bakeLoop" checked> 自动找循环点（无缝循环，成片可能短于上面的时长）</label><div class="sub" id="bakeStatus" style="font-size:10px;margin-top:8px"></div></div></div></div></div>
 <div class="toast" id="toast"></div>
 <div class="ctx-menu" id="ctxMenu"></div>
+<!-- 文件夹浮层：半透明遮罩 + 左侧悬浮面板，不挤占卡片位置 -->
+<div id="folderOverlay" class="folder-overlay" onclick="if(event.target===this)folderPanelClose()">
+  <aside class="folder-flyout" id="folderFlyout">
+    <div class="folder-pane-head"><b>文件夹</b><button class="icon-add" title="新建根文件夹" onclick="folderCreate(null)">＋</button><button class="icon-add folder-close" title="关闭" onclick="folderPanelClose()">✕</button></div>
+    <div class="folder-tree" id="folderTree"></div>
+    <p class="sub" style="font-size:10px;margin:10px 8px 0;line-height:1.5">文件夹只是逻辑分组，不会移动磁盘上的文件。可把框选的壁纸拖到文件夹里。</p>
+  </aside>
+</div>
+<!-- 移动到文件夹：选择目标 -->
+<div class="modal-backdrop" id="folderPicker" style="z-index:95">
+  <div class="modal" style="width:360px;max-height:80vh;padding:18px;display:block">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><b style="font-size:14px">移动到文件夹</b><button class="icon-btn" onclick="folderPickerClose()">✕</button></div>
+    <div class="folder-picker" id="folderPickerTree"></div>
+    <p class="sub" style="font-size:10px;margin:10px 0 0">选择「全部壁纸」可取消分组。文件夹只是逻辑分组，不会移动磁盘上的文件。</p>
+  </div>
+</div>
 <div class="modal-backdrop" id="appConfirm" style="z-index:11000"><div class="bt-modal" style="width:min(360px,92vw)">
   <div style="padding:18px 20px 8px;font-size:13.5px;font-weight:600" id="acTitle">确认</div>
   <div style="padding:0 20px 14px;font-size:12px;color:var(--muted);white-space:pre-wrap;line-height:1.6" id="acMsg"></div>
   <div style="display:flex;gap:9px;padding:0 20px 16px;justify-content:flex-end">
     <button class="secondary" id="acNo">取消</button>
     <button class="primary" id="acYes" style="background:#b42318;border-color:#b42318">确认</button>
+  </div>
+</div></div>
+<!-- 应用内文本输入（替代原生 prompt） -->
+<div class="modal-backdrop" id="appInput" style="z-index:11000"><div class="bt-modal" style="width:min(360px,92vw)">
+  <div style="padding:18px 20px 8px;font-size:13.5px;font-weight:600" id="aiTitle">输入</div>
+  <div style="padding:0 20px 8px;font-size:12px;color:var(--muted)" id="aiLabel"></div>
+  <div style="padding:0 20px 12px"><input id="aiValue" class="set-input" style="width:100%;height:36px;background:#ffffff0c;border:1px solid #ffffff1c;border-radius:8px;color:#fff;padding:0 10px;font-size:13px" maxlength="100"></div>
+  <div style="display:flex;gap:9px;padding:0 20px 16px;justify-content:flex-end">
+    <button class="secondary" id="aiCancel">取消</button>
+    <button class="primary" id="aiOk">确定</button>
   </div>
 </div></div>
 <!-- 发布到云端：单条上传前填信息；批量上传按各自现有信息直接走，不弹这张表单 -->
@@ -889,6 +990,7 @@ body.wf-selecting .wall-card,body.wf-selecting .we-card{transition:none}
     <button class="secondary" onclick="batchFav(true)">加入收藏</button>
     <button class="secondary" onclick="batchFav(false)">取消收藏</button>
     <button class="secondary" onclick="batchTagsOpen()">设定标签</button>
+    <button class="secondary" onclick="folderMovePicked()">移动到文件夹</button>
     <button class="secondary" id="batchCloudBtn" onclick="cloudPublishBatch()">上传云端</button>
     <button class="secondary we-danger" onclick="batchDelete()">删除</button>
     <button class="secondary" onclick="batchClear()">取消选择</button>
@@ -1049,7 +1151,23 @@ function cardTagHtml(w){
   return html+(subs.length>4?'<span class="mini-tag">…</span>':'');
 }
 
+// 文件夹卡片：逻辑分组的入口，与壁纸卡片同网格显示。用 data-fid（非 data-wid）避免被框选/批量选中。
+// 缩略图取该文件夹子树内第一张有封面的壁纸；空文件夹显示黑底淡边框 + 文件夹图标。
+function folderCardHtml(f){
+  const sub=new Set(folderSubtreeIds(f.id));
+  const sample=walls.find(w=>sub.has(w.folder_id)&&w.cover&&!w.missing);
+  const thumb=sample
+    ? '<img loading="lazy" src="'+esc(coverUrl(sample))+'" alt="">'
+    : '<div class="folder-empty-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>';
+  return '<article class="wall-card folder-card" data-fid="'+f.id+'" onclick="folderOpen('+f.id+')" '
+    +'ondragover="folderDragOver(event,'+f.id+')" ondragleave="folderDragLeave(event)" ondrop="folderDrop(event,'+f.id+')">'
+    +'<div class="thumb">'+thumb
+    +'<span class="folder-count-tag">'+esc(String(f.count||0))+' 张</span>'
+    +'<div class="title-overlay"><span class="folder-mini">📁</span>'+esc(f.name)+'</div>'
+    +'</div><div class="card-info"><div class="tagline">文件夹 · '+esc(String(f.count||0))+' 张壁纸</div></div></article>';
+}
 function card(w,deletable){
+  if(w&&w._folder) return folderCardHtml(w.f);
   const i=walls.findIndex(x=>x.id===w.id);
   const liked=favorites.has(w.id);
   const del=deletable?'<button class="del-btn" title="删除这个壁纸" aria-label="删除" onclick="event.stopPropagation();deleteWallpaper('+w.id+')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9.5 7V4.5h5V7M6.8 7l.8 12.5h8.8L17.2 7"/></svg></button>':'';
@@ -1057,8 +1175,7 @@ function card(w,deletable){
   const thumb=w.missing
     ?'<div class="thumb-broken"><b>文件缺失</b><span>磁盘上已找不到这个壁纸</span></div>'
     :'<img loading="lazy" src="'+esc(coverUrl(w))+'" alt="'+esc(w.title)+'">';
-  // 卡片改版：标题压图上（渐变遮罩），图下标签（加大）+作者行（再大 2px）
-  const authorHtml=w.author?'<div class="card-author">作者 '+esc(w.author)+'</div>':'';
+  // 卡片改版：标题压图上（渐变遮罩），图下标签。作者行已去掉——作者只在预览窗口显示。
   // 素材问题角标：主文件没了会走上面的破图占位，封面丢了/路径越界这类
   // 「还能用但不正常」的情况要给一个看得见的提示，不然用户只会觉得壁纸很糊。
   const issueHtml=(w.issues&&w.issues.length)
@@ -1079,7 +1196,9 @@ function card(w,deletable){
     ?'<span class="type cloud-mark" title="已上传到云端"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.42 8.05A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg></span>'
     :'<button class="type cloud-up" title="上传到云端" onclick="event.stopPropagation();currentWall='+w.id+';cloudPublishOpen()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V7M5 12l7-7 7 7"/></svg></button>';
   })();
-  return '<article class="wall-card'+(w.missing?' is-broken':'')+'" data-wid="'+w.id+'" onclick="openWallpaper('+w.id+')"><div class="thumb">'+thumb+'<div class="title-overlay">'+esc(w.title)+'</div>'+cloudMark+'<button class="fav '+(liked?'liked':'')+'" onclick="event.stopPropagation();favorite('+i+',this)" aria-label="收藏">'+(liked?'♥':'♡')+'</button>'+del+'</div><div class="card-info"><div class="tagline">'+cardTagHtml(w)+'</div>'+authorHtml+issueHtml+'</div></article>';
+  // draggable 只给已框选的卡片：这样拖动=移动文件夹，单击/框选行为不变（不与 marquee 冲突）
+  // 所有壁纸卡片都可拖：拖到文件夹节点/卡片即可把壁纸移入（未选中的会在 dragstart 自动选中）
+  return '<article class="wall-card'+(w.missing?' is-broken':'')+'" data-wid="'+w.id+'" draggable="true" onclick="openWallpaper('+w.id+')"><div class="thumb">'+thumb+'<div class="title-overlay">'+esc(w.title)+'</div>'+cloudMark+'<button class="fav '+(liked?'liked':'')+'" onclick="event.stopPropagation();favorite('+i+',this)" aria-label="收藏">'+(liked?'♥':'♡')+'</button>'+del+'</div><div class="card-info"><div class="tagline">'+cardTagHtml(w)+'</div>'+issueHtml+'</div></article>';
 }
 
 // 「我的壁纸」的类型筛选只有筛选面板一个入口（localFilter.type），这里不再另设状态
@@ -1131,13 +1250,34 @@ function resetPage(...keys){ keys.forEach(k=>{pageState[k]=1;}); }
 function render(){
   catChipsPaint();   // 本地标签栏与卡片、筛选面板同一个刷新点，改标签后各处不会不同步
   const kw=searchTerm.trim().toLowerCase();
-  const hit=w=>!kw||(w.title+' '+(w.author||'')+' '+(w.description||'')+' '+w.category+' '+(w.tags||'')).toLowerCase().includes(kw);
+  // 搜索串加入所属文件夹名（全局搜：搜文件夹名即命中该文件夹内所有壁纸）。
+  // 搜到即跨文件夹显示——文件夹过滤只在没搜索时生效，否则用户搜不到别处的壁纸。
+  const hit=w=>!kw||(w.title+' '+(w.author||'')+' '+(w.description||'')+' '+w.category+' '
+    +(w.tags||'')+' '+folderNameOf(w.folder_id)).toLowerCase().includes(kw);
   const fav=walls.filter(w=>favorites.has(w.id)&&hit(w)&&lfPass(w));
   renderList('#favoriteGrid','#favPager','fav',fav,false,'还没有收藏壁纸。点击卡片上的 ♡ 收藏喜欢的作品。');
-  const mine=walls.filter(w=>hit(w)&&lfPass(w));
-  renderList('#myWallGrid','#myPager','my',mine,true,'本地还没有壁纸，去「本地导入」添加吧。');
+  // 文件夹过滤：搜索时忽略文件夹（全局搜）；
+  // 首页(currentFolder=null)只显示未分组壁纸；
+  // 文件夹内只显示「直属」该文件夹的壁纸——子文件夹的壁纸只在子文件夹里看，
+  // 不在这里重复显示（子文件夹作为卡片列在上方供进入）。
+  const wallItems=walls.filter(w=>hit(w)&&lfPass(w)&&(
+    kw ? true
+    : w.folder_id===currentFolder
+  ));
+  // 文件夹卡片：非搜索、且通过标签/筛选时，把「当前层级的直接子文件夹」像卡片一样排在前面。
+  // 搜索时保持扁平壁纸结果（文件夹过滤已忽略），避免文件夹卡片干扰全局搜索语义。
+  const plainFilter=!kw&&!localFilter.type&&!localFilter.primary&&!localFilter.subs.size&&!localFilter.author;
+  const subFolders=plainFilter
+    ? folders.filter(f=>(f.parent_id==null?null:f.parent_id)===(currentFolder==null?null:currentFolder))
+    : [];
+  const mine=[...subFolders.map(f=>({_folder:true,f})),...wallItems];
+  const emptyMsg=currentFolder!=null&&!kw
+    ? '这个文件夹还是空的。把壁纸拖进来，或右键壁纸选择「移动到文件夹」。'
+    : '本地还没有壁纸，去「本地导入」添加吧。';
+  renderList('#myWallGrid','#myPager','my',mine,true,emptyMsg);
   $("#localWallCount").textContent=walls.length;
   $("#favCount").textContent=fav.length;
+  folderTreePaint();   // 侧栏计数/选中态跟着刷新（files/folders 变了也要同步）
   lfRender();
   libPaint();
   // 发现页读的是云端目录，和本地库零关系；但下载完成后 walls 会刷新，
@@ -1372,6 +1512,9 @@ function marqueeSpec(){
   }
   // 拖到窗口外松手时 document 收不到 mouseup，会卡在"框还在"的状态；这里只收尾，不当成点空白
   function onBlur(){ resetDrag(); }
+  // 暴露复位入口：HTML5 拖放会吞掉 mouseup（改发 dragend），导致框选状态残留、框卡在页面上。
+  // dragstart/dragend 时调用它清干净。
+  window.wfMarqueeReset=resetDrag;
   document.addEventListener('mousedown',onDown);
   window.addEventListener('blur',onBlur);
   document.addEventListener('click',e=>{
@@ -1383,6 +1526,9 @@ function marqueeSpec(){
       e.stopPropagation(); e.preventDefault();
     }
   },true);
+  // 启动兜底：清掉历史残留（如上次拖拽卡住的）框选框与选中态样式
+  document.querySelectorAll('.wf-marquee').forEach(el=>el.remove());
+  document.body.classList.remove('wf-selecting');
 })();
 
 // ---- 本地库（壁纸库 / 首页 / 我的壁纸 / 收藏）批量选中 ----
@@ -1396,6 +1542,235 @@ function libPaint(){
   $('#libBatch').classList.toggle('on',n>0);
 }
 function batchClear(){ picked.clear(); libPaint(); }
+
+// ================= 文件夹（逻辑分组，只改 DB 的 folder_id，不动磁盘文件）=================
+const FOLDERS='/api/v1/folders';
+let folders=[];              // 平铺 [{id,name,parent_id,count}]
+let currentFolder=null;      // null = "全部"，否则是该文件夹 id（含子孙的壁纸）
+let folderCollapsed=new Set(); // 折叠的文件夹 id
+let folderPickerTarget=null;  // 移动对话框：'picked' 批量 或 单个壁纸 id
+
+async function folderLoad(){
+  try{
+    const j=await (await fetch(FOLDERS,{cache:'no-store'})).json();
+    if(j.code===0) folders=j.data.folders||[];
+  }catch{ /* 后端暂不可用：保留上次列表 */ }
+  folderTreePaint();
+}
+// 某文件夹的后代 id（parent_id 链），含自身——用于"当前文件夹"过滤时包含子文件夹里的壁纸
+function folderSubtreeIds(id){
+  const out=[id], q=[id];
+  while(q.length){
+    const cur=q.shift();
+    for(const f of folders) if(f.parent_id===cur&&!out.includes(f.id)){ out.push(f.id); q.push(f.id); }
+  }
+  return out;
+}
+function folderNameOf(id){ return folders.find(f=>f.id===id)?.name||''; }
+// 递归渲染树节点。depth 限 12 层，防意外深嵌套把 UI 递归卡死。
+function folderNodeHtml(f,depth){
+  if(depth>12) return '';
+  const kids=folders.filter(x=>x.parent_id===f.id);
+  const collapsed=folderCollapsed.has(f.id);
+  const active=currentFolder===f.id;
+  const safe=esc(f.name);
+  return '<div class="folder-node'+(active?' active':'')+'" data-fid="'+f.id+'" '
+    +'onclick="folderOpen('+f.id+')" ondragover="folderDragOver(event,'+f.id+')" '
+    +'ondragleave="folderDragLeave(event)" ondrop="folderDrop(event,'+f.id+')">'
+    +'<span class="f-arrow'+(collapsed?' collapsed':'')+'" '+(kids.length?'onclick="event.stopPropagation();folderToggle('+f.id+')"':'')+'>'+(kids.length?'▾':'·')+'</span>'
+    +'<span class="f-name" title="'+safe+'">'+safe+'</span>'
+    +'<span class="f-count">'+f.count+'</span>'
+    +'<span class="f-act" title="新建子文件夹" onclick="event.stopPropagation();folderCreate('+f.id+')">＋</span>'
+    +'<span class="f-act" title="重命名" onclick="event.stopPropagation();folderRename('+f.id+')">✎</span>'
+    +'<span class="f-act" title="删除文件夹" onclick="event.stopPropagation();folderDelete('+f.id+')">✕</span>'
+    +'</div>'
+    +(kids.length&&!collapsed?'<div class="folder-children">'+kids.map(k=>folderNodeHtml(k,depth+1)).join('')+'</div>':'');
+}
+function folderTreePaint(){
+  const el=$('#folderTree'); if(!el) return;
+  const roots=folders.filter(f=>f.parent_id==null);
+  const allCount=walls.length;
+  const allNode='<div class="folder-node'+(currentFolder==null?' active':'')+'" data-fid="" '
+    +'onclick="folderOpen(null)" ondragover="folderDragOver(event,null)" ondragleave="folderDragLeave(event)" ondrop="folderDrop(event,null)">'
+    +'<span class="f-arrow">·</span><span class="f-name">全部壁纸</span><span class="f-count">'+allCount+'</span></div>';
+  el.innerHTML=allNode+(roots.length?roots.map(f=>folderNodeHtml(f,0)).join(''):'<div class="folder-empty">还没有文件夹，点 ＋ 新建</div>');
+  const badge=$('#folderBadge'); if(badge) badge.textContent=folders.length?('·'+folders.length):'';
+  // 首页/返回按钮：只在进入文件夹时出现（首页=回全部，返回=上一层）
+  const inFolder=currentFolder!=null;
+  const hb=$('#folderHomeBtn'), bb=$('#folderBackBtn');
+  if(hb) hb.style.display=inFolder?'':'none';
+  if(bb) bb.style.display=inFolder?'':'none';
+  const tb=$('#libToolbar'); if(tb) tb.classList.toggle('in-folder',inFolder);
+}
+// 返回上一层：回到当前文件夹的 parent_id（根文件夹则返回全部）
+function folderGoUp(){
+  const f=folders.find(x=>x.id===currentFolder);
+  folderOpen(f&&f.parent_id!=null?f.parent_id:null);
+}
+// 浮层开关：展开按钮 + 半透明遮罩；不挤占卡片位置
+function folderPanelPlace(){
+  // 贴齐第一列壁纸左边缘、宽度约为一张卡片的 2/3、出现在「文件夹」按钮下方一点。
+  // 关键：基准取「网格容器」而非里面第一张卡片——进入空文件夹时 grid 里没有 .wall-card，
+  // 旧写法会 fallback 到隐藏收藏页的卡片（rect 全 0），导致浮层跑到屏幕最左侧。
+  const fly=$('#folderFlyout'), btn=$('#folderToggleBtn');
+  if(!fly||!btn) return;
+  const grid=$('#myWallGrid')||$('#page-mywallpapers');
+  const b=btn.getBoundingClientRect();
+  let left=Math.max(8,b.left), width=220;
+  if(grid){
+    // 第一列卡片的真实宽度：优先取可见卡片，否则用 grid 的计算列宽(首列)。
+    const card=grid.querySelector('.wall-card');
+    let cardW=0;
+    if(card){ const r=card.getBoundingClientRect(); cardW=r.width; left=r.left; }
+    else{
+      const cols=getComputedStyle(grid).gridTemplateColumns.split(' ');
+      cardW=parseFloat(cols[0])||0;
+      left=grid.getBoundingClientRect().left;
+    }
+    if(cardW>0) width=Math.max(150,Math.round(cardW*2/3));
+  }
+  const top=Math.min(b.bottom+8, window.innerHeight-80); // 按钮下方 8px
+  fly.style.left=left+'px';
+  fly.style.top=top+'px';
+  fly.style.width=width+'px';
+  // 高度不超出视口下沿（下方留一点余量）
+  fly.style.maxHeight='min(560px,'+Math.max(160,window.innerHeight-top-24)+'px)';
+}
+function folderPanelOpen(){
+  const ov=$('#folderOverlay');
+  if(ov?.classList.contains('open')){ folderPanelClose(); return; } // 再点展开按钮=关闭
+  ov?.classList.add('open');
+  $('#folderToggleBtn')?.classList.add('active');
+  folderPanelPlace();
+  folderTreePaint();
+}
+function folderPanelClose(){
+  $('#folderOverlay')?.classList.remove('open');
+  $('#folderToggleBtn')?.classList.remove('active');
+}
+// 点击浮层外围 = Esc 关闭（遮罩本身 pointer-events:none 不拦拖拽，故用文档级监听判定）
+document.addEventListener('click',e=>{
+  const ov=$('#folderOverlay');
+  if(!ov||!ov.classList.contains('open')) return;
+  const t=e.target;
+  if(t&&t.closest&&t.closest('#folderFlyout')) return;        // 点浮层内部：不关
+  if(t&&t.closest&&t.closest('#folderToggleBtn')) return;     // 点展开按钮：交给按钮 toggle
+  if(t&&t.closest&&t.closest('.modal-backdrop.open')) return; // 点输入/确认弹窗：不关
+  folderPanelClose();
+});
+// 视口变化时重新贴位，避免浮层跑偏
+window.addEventListener('resize',()=>{ if($('#folderOverlay')?.classList.contains('open')) folderPanelPlace(); });
+function folderOpen(id){ currentFolder=id; resetPage('my'); render(); }
+function folderToggle(id){
+  if(folderCollapsed.has(id)) folderCollapsed.delete(id); else folderCollapsed.add(id);
+  folderTreePaint();
+}
+async function folderCreate(parentId){
+  const parent=parentId?folderNameOf(parentId):'根';
+  // 用应用内输入弹层：Electron 里原生 prompt 不弹窗（按钮看起来"没用"）。
+  const name=await appInput('新建文件夹','在「'+parent+'」下，输入文件夹名：','新文件夹');
+  if(name==null||!name.trim()) return;
+  try{
+    const j=await (await fetch(FOLDERS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,parent_id:parentId})})).json();
+    if(j.code!==0) throw new Error(j.message);
+    toast('已创建文件夹：'+j.data.name);
+    await folderLoad();
+  }catch(e){ toast('创建失败：'+(e.message||e)); }
+}
+async function folderRename(id){
+  const f=folders.find(x=>x.id===id); if(!f) return;
+  const name=await appInput('重命名文件夹','输入新的文件夹名：',f.name);
+  if(name==null||!name.trim()||name===f.name) return;
+  try{
+    const j=await (await fetch(FOLDERS+'/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})})).json();
+    if(j.code!==0) throw new Error(j.message);
+    toast('已重命名'); await folderLoad();
+  }catch(e){ toast('重命名失败：'+(e.message||e)); }
+}
+async function folderDelete(id){
+  const f=folders.find(x=>x.id===id); if(!f) return;
+  const upName=f.parent_id!=null?folderNameOf(f.parent_id):'全部壁纸';
+  if(!await appConfirm('里面的壁纸会回到「'+upName+'」，壁纸本身和文件不会删除。','删除文件夹「'+f.name+'」及其所有子文件夹？')) return;
+  try{
+    const j=await (await fetch(FOLDERS+'/'+id,{method:'DELETE'})).json();
+    if(j.code!==0) throw new Error(j.message);
+    // 当前正停在要删的文件夹(或其子孙)里：回到被删文件夹的上层，而不是首页。
+    const wasInside=folderSubtreeIds(id).includes(currentFolder);
+    if(wasInside) currentFolder=j.data.wallpapersMovedTo;
+    toast('已删除 '+j.data.deleted+' 个文件夹，'+(j.data.movedCount||0)+' 张壁纸回到「'+upName+'」');
+    await folderLoad(); await loadWalls(); render();
+  }catch(e){ toast('删除失败：'+(e.message||e)); }
+}
+// 拖拽：框选的壁纸或右键单张，拖到文件夹节点/卡片上放入。
+// 拖未选中的卡片时自动把它补进 picked；写 dataTransfer 让 HTML5 drag 正式启动。
+document.addEventListener('dragstart',e=>{
+  const card=e.target.closest?.('.wall-card[data-wid]');
+  if(!card||!['mywallpapers','favorites'].includes(currentPage)) return;
+  // 关键：mousedown 已让 marquee 进入"待框选"状态，而 HTML5 drag 会吞掉 mouseup，
+  // 导致 onUp 永不触发、框卡在页面上。拖一开始立即复位框选状态。
+  try{ window.wfMarqueeReset?.(); }catch{}
+  const wid=Number(card.dataset.wid);
+  if(!picked.has(wid)){ picked.clear(); picked.add(wid); libPaint(); }
+  if(e.dataTransfer){
+    e.dataTransfer.effectAllowed='move';
+    try{ e.dataTransfer.setData('text/plain',[...picked].join(',')); }catch{}
+  }
+});
+// dragend 兜底：无论拖放成功/取消，都清掉可能残留的框选框与框选状态
+document.addEventListener('dragend',()=>{ try{ window.wfMarqueeReset?.(); }catch{} });
+function folderDragOver(e,id){
+  if(!picked.size&&folderPickerTarget==null) return;
+  e.preventDefault(); e.dataTransfer.dropEffect='move';
+  e.currentTarget.classList.add('drop-target');
+}
+function folderDragLeave(e){ e.currentTarget.classList.remove('drop-target'); }
+async function folderDrop(e,id){
+  e.preventDefault(); e.currentTarget.classList.remove('drop-target');
+  const ids=picked.size?[...picked]:(folderPickerTarget!=null?[folderPickerTarget]:[]);
+  if(!ids.length){ toast('先框选要移动的壁纸'); return; }
+  await folderMove(ids,id);
+  folderPickerTarget=null;
+}
+async function folderMove(ids,folderId){
+  try{
+    const j=await (await fetch(FOLDERS+'/move',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids,folderId})})).json();
+    if(j.code!==0) throw new Error(j.message);
+    toast('已移动 '+j.data.moved+' 张壁纸到'+(folderId==null?'「全部壁纸」':'「'+folderNameOf(folderId)+'」'));
+    await folderLoad(); await loadWalls(); batchClear();
+  }catch(e){ toast('移动失败：'+(e.message||e)); }
+}
+function folderMovePicked(){
+  if(!picked.size){ toast('先框选要移动的壁纸'); return; }
+  folderPickerTarget='picked';
+  folderPickerOpen();
+}
+function ctxMoveToFolder(){
+  const id=ctxTargetId; closeCtxMenu();
+  if(id==null) return;
+  folderPickerTarget=id;
+  folderPickerOpen();
+}
+function folderPickerOpen(){
+  const modal=$('#folderPicker');
+  if(!modal) return;
+  modal.classList.add('open');
+  const el=$('#folderPickerTree');
+  el.innerHTML='<div class="folder-node" data-fid="" onclick="folderPickerChoose(null)"><span class="f-arrow">·</span><span class="f-name">全部壁纸（取消分组）</span></div>'
+    +folders.filter(f=>f.parent_id==null).map(f=>folderPickerNodeHtml(f,0)).join('');
+}
+function folderPickerNodeHtml(f,depth){
+  if(depth>12) return '';
+  const kids=folders.filter(x=>x.parent_id===f.id);
+  return '<div class="folder-node" data-fid="'+f.id+'" onclick="folderPickerChoose('+f.id+')"><span class="f-arrow">·</span><span class="f-name">'+esc(f.name)+'</span><span class="f-count">'+f.count+'</span></div>'
+    +(kids.length?'<div class="folder-children">'+kids.map(k=>folderPickerNodeHtml(k,depth+1)).join('')+'</div>':'');
+}
+function folderPickerClose(){ $('#folderPicker')?.classList.remove('open'); folderPickerTarget=null; }
+function folderPickerChoose(id){
+  const target=folderPickerTarget; folderPickerClose();
+  if(target==null) return;
+  const ids=target==='picked'?[...picked]:[Number(target)];
+  if(ids.length) folderMove(ids,id);
+}
 // ---- 批量设定标签 ----
 // 主标签：WE 枚举（后端会校验）；副标签：按三种模式批量算好再逐条 PATCH
 let btSubs=new Set();
@@ -2245,18 +2620,29 @@ async function deleteWallpaper(id){
 let ctxTargetId=null;
 document.addEventListener("contextmenu",(e)=>{
   const card=e.target.closest(".wall-card");
-  if(!card) return closeCtxMenu();
-  const wid=Number(card.dataset.wid);
-  const w=walls.find(x=>x.id===wid);
-  if(!w) return closeCtxMenu();
-  e.preventDefault();
-  ctxTargetId=wid;
   const menu=$("#ctxMenu");
-  menu.innerHTML='<button onclick="ctxSetWallpaper()">设为壁纸</button>'
+  // 空白区（壁纸库页）：弹文件夹相关菜单——新建文件夹 / 打开壁纸总目录
+  if(!card){
+    if(currentPage!=='mywallpapers') return closeCtxMenu();
+    // 点在浮层/筛选/按钮等控件上时不弹库菜单，交给浏览器默认
+    if(e.target.closest('#folderFlyout,.lib-toolbar,.we-filters,#ctxMenu')) return closeCtxMenu();
+    e.preventDefault();
+    ctxTargetId=null;
+    menu.innerHTML='<button onclick="ctxCreateFolderHere()">＋ 新建文件夹</button>'
+      +'<button onclick="ctxOpenLibraryDir()">打开壁纸总目录</button>';
+  }else{
+    const wid=Number(card.dataset.wid);
+    const w=walls.find(x=>x.id===wid);
+    if(!w) return closeCtxMenu();
+    e.preventDefault();
+    ctxTargetId=wid;
+    menu.innerHTML='<button onclick="ctxSetWallpaper()">设为壁纸</button>'
+    +'<button onclick="ctxMoveToFolder()">移动到文件夹…</button>'
     +'<button onclick="ctxUpload()">上传云端</button>'
     +'<button onclick="ctxReveal()">打开所在位置</button>'
     +'<div class="ctx-sep"></div>'
     +'<button class="danger" onclick="ctxDelete()">删除壁纸</button>';
+  }
   menu.classList.add("open");
   // 贴边处理：靠右/靠下时往回收
   const mw=menu.offsetWidth||160, mh=menu.offsetHeight||130;
@@ -2266,6 +2652,27 @@ document.addEventListener("contextmenu",(e)=>{
   menu.style.left=x+"px"; menu.style.top=y+"px";
 });
 function closeCtxMenu(){ const m=$("#ctxMenu"); if(m) m.classList.remove("open"); }
+// 空白区右键：在当前所在文件夹下新建子文件夹（根则建根文件夹）
+function ctxCreateFolderHere(){
+  closeCtxMenu();
+  folderCreate(currentFolder);
+}
+// 空白区右键：用系统文件管理器打开壁纸总目录
+async function ctxOpenLibraryDir(){
+  closeCtxMenu();
+  try{
+    const j=await (await fetch('/api/v1/settings')).json();
+    const dir=j.data?.libraryDir;
+    if(!dir) return toast('拿不到壁纸目录');
+    if(window.WF_SHELL&&typeof window.WF_SHELL.revealPath==='function'){
+      const res=await window.WF_SHELL.revealPath(dir);
+      if(res!=='ok') toast('目录已不在磁盘上，无法打开');
+    }else{
+      await navigator.clipboard.writeText(dir).catch(()=>{});
+      toast('已在剪贴板：'+dir);
+    }
+  }catch(e){ toast('打开失败：'+(e.message||e)); }
+}
 document.addEventListener("click",(e)=>{ if(!e.target.closest("#ctxMenu")) closeCtxMenu(); });
 document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeCtxMenu(); });
 window.addEventListener("blur",closeCtxMenu);
@@ -2374,6 +2781,30 @@ document.addEventListener('click',e=>{
   if(e.target&&e.target.id==='acYes'){ $("#appConfirm").classList.remove('open'); const r=acResolve; acResolve=null; if(r) r(true); }
   else if(e.target&&e.target.id==='acNo'){ $("#appConfirm").classList.remove('open'); const r=acResolve; acResolve=null; if(r) r(false); }
   else if(e.target&&e.target.id==='appConfirm'){ $("#appConfirm").classList.remove('open'); const r=acResolve; acResolve=null; if(r) r(false); }
+});
+
+// ---------- 应用内文本输入弹层（替代原生 prompt：Electron 里原生 prompt 不弹窗）----------
+let aiResolve=null;
+function appInput(title,label,initial=''){
+  return new Promise((resolve)=>{
+    aiResolve=resolve;
+    $("#aiTitle").textContent=title||'输入';
+    $("#aiLabel").textContent=label||'';
+    $("#aiValue").value=initial||'';
+    $("#appInput").classList.add('open');
+    setTimeout(()=>{ try{ const el=$("#aiValue"); el.focus(); el.select(); }catch(e){} },30);
+  });
+}
+function aiDone(value){ $("#appInput").classList.remove('open'); const r=aiResolve; aiResolve=null; if(r) r(value); }
+document.addEventListener('click',e=>{
+  if(e.target&&e.target.id==='aiOk') aiDone($("#aiValue").value);
+  else if(e.target&&e.target.id==='aiCancel') aiDone(null);
+  else if(e.target&&e.target.id==='appInput') aiDone(null);
+});
+document.addEventListener('keydown',e=>{
+  if(!$("#appInput")?.classList.contains('open')) return;
+  if(e.key==='Enter'&&document.activeElement===$("#aiValue")){ e.preventDefault(); aiDone($("#aiValue").value); }
+  if(e.key==='Escape'){ e.preventDefault(); aiDone(null); }
 });
 
 // ---------- 上传记录（localStorage，发布成功/失败各记一条） ----------
@@ -3052,6 +3483,9 @@ function playBindOnce(){
 
 function go(page){
   const prevPage=currentPage;
+  // 从别处（含左侧导航）进入「我的壁纸」视为回到库首页：清除文件夹聚焦，
+  // 否则文件夹状态下点左侧导航仍停在旧文件夹、看似"切换无效"。
+  if(page==='mywallpapers'&&prevPage!=='mywallpapers'&&typeof currentFolder!=='undefined') currentFolder=null;
   currentPage=page;
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   $("#page-"+page).classList.add("active");
@@ -3147,7 +3581,7 @@ $("#fileInput").addEventListener("change",async e=>{
   const files=[...e.target.files]; e.target.value='';
   if(files.length) await runImportQueue(files.map(f=>({kind:'file',label:f.name,run:()=>importOneFile(f)})));
 });
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeModal();closeFullscreen();batchTagsClose();}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();$("#globalSearch").focus();}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeModal();closeFullscreen();batchTagsClose();folderPanelClose();folderPickerClose();}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();$("#globalSearch").focus();}});
 // 网页壁纸 iframe（跨源沙箱）内的 Esc 通过桥转发回来——父文档收不到 iframe 内部按键
 window.addEventListener("message",e=>{
   const d=e.data;
@@ -3854,7 +4288,7 @@ document.addEventListener('keydown',e=>{
 })();
 // 先把老版本存在浏览器里的收藏搬进数据库，再拉列表 —— 顺序不能反，
 // 否则首屏会先按空的收藏集合画一次，收藏数会闪一下 0。
-migrateLegacyFav().then(loadWalls);
+migrateLegacyFav().then(async()=>{ await loadWalls(); await folderLoad(); });
 // 首屏就把下载队列拉一次，侧边栏角标不该是写死的数字
 dlLoad();
 // 发现页是默认页，云端目录也要首屏就有
