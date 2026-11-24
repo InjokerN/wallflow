@@ -8,7 +8,6 @@ const router = Router();
 const success = (res, data) => res.json({ code: 0, message: 'ok', data });
 const fail = (res, status, message) => res.status(status).json({ code: status, message, data: null });
 
-const IMG_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif', '.avif']);
 const VID_EXT = new Set(['.mp4', '.webm', '.mkv', '.mov', '.m4v']);
 
 const STYLE_LABEL = { fill: '填充', fit: '适应' };
@@ -31,6 +30,12 @@ const onlyLocal = (req, res, next) => {
 // 注意：这里只决定"谁来画桌面"，绝不碰 Windows 系统壁纸——那是用户自己的设置，
 // 壁纸软件退出后应该原样露出来（WE / Lively 都是这个行为）。
 function coreMedia(w) {
+  // scene（含单文件图片）一律交给 Electron 壁纸窗口渲染，不进 C++ 内核：
+  //   · 静态图走内核会和视频共用 mpv 路径 → xyzoom 滑块对它无效；删除时内核仍播旧画面。
+  //   · 场景包(scene.pkg)本来 mpv 也播不了。
+  // 只有 video 类型 + 视频扩展名才由内核解码播放；这样 scene 的 x/y/scale 走壁纸窗口，
+  // 和 web/scene 一致（用户实测这三类滑块都正常），删除后也能随窗口一起恢复桌面。
+  if (w.type === 'scene' || w.type === 'web') return null;
   const dir = resolveWallpaperDir(w);
   const root = path.resolve(getLibraryDir()) + path.sep;
   const rel = String(w.main_file || '').replace(/\\/g, '/');
@@ -38,7 +43,7 @@ function coreMedia(w) {
   const abs = path.resolve(dir, path.basename(rel));
   if (!abs.startsWith(root) || !fs.existsSync(abs)) return null;
   const ext = path.extname(abs).toLowerCase();
-  if (VID_EXT.has(ext) || IMG_EXT.has(ext)) return abs;
+  if (VID_EXT.has(ext)) return abs;
   return null;
 }
 

@@ -166,6 +166,9 @@ body{background:var(--bg);color:var(--text);font-family:Inter,"SF Pro Display","
 .icon-btn{background:#141619;border:1px solid #ffffff0b;color:#aeb1b2}
 .icon-btn:hover{background:#222528;color:#fff}
 .status{color:#aeb2b2}.dot{background:#aeb8ae;box-shadow:0 0 9px #aeb8ae55}
+/* 引擎状态点：播放中绿、暂停灰。用 .status 前缀提高特异性，压过主题里的灰点覆盖 */
+.status.playing .dot{background:var(--green);box-shadow:0 0 12px #62c7a177}
+.status.paused .dot{background:#aeb8ae;box-shadow:0 0 9px #aeb8ae55;animation:none}
 .content{max-width:1660px;padding:14px 42px 20px}
 .eyebrow{color:#8f9495;font-size:9px;letter-spacing:2.1px}
 h1{font-size:30px;font-weight:620;letter-spacing:-1.15px;margin:8px 0 8px}
@@ -485,7 +488,7 @@ body.wf-selecting .wall-card,body.wf-selecting .we-card{transition:none}
 <header class="topbar">
   <button class="icon-btn mobile-menu" id="menuBtn" aria-label="菜单"><svg viewBox="0 0 24 24" width="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
   <div class="search"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="globalSearch" placeholder="搜索壁纸、作者或标签..."><span style="font-size:10px;color:#74798a;white-space:nowrap">⌘ K</span></div>
-  <div class="top-actions"><div class="status"><i class="dot"></i>壁纸引擎运行中</div><button class="icon-btn" title="通知" onclick="toast('暂时没有新通知')"><svg width="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 12h4"/></svg></button><button class="icon-btn" title="随机壁纸" onclick="randomWallpaper()"><svg width="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></button></div>
+  <div class="top-actions"><div class="status" id="engineStatus"><i class="dot" id="engineDot"></i><span id="engineStatusText">壁纸引擎运行中</span></div><button class="icon-btn" title="随机壁纸" onclick="randomWallpaper()"><svg width="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></button></div>
 </header>
 <div class="content">
 <section class="page active" id="page-home">
@@ -575,10 +578,10 @@ body.wf-selecting .wall-card,body.wf-selecting .we-card{transition:none}
 <section class="page" id="page-local">
   <div class="page-title-row"><div><h1>本地导入</h1></div></div>
   <div class="panel" id="localDropZone" style="margin-top:24px;text-align:center;padding:55px 20px;border:1px dashed #55585e;background:#191a26;transition:border-color .15s,background .15s">
-    <div style="width:54px;height:54px;border-radius:16px;background:#ffffff12;color:#d0d2d5;display:grid;place-items:center;margin:0 auto 15px;font-size:25px">↑</div><h2>导入壁纸</h2><p class="sub" style="margin:8px 0 6px">支持单文件、Wallpaper Engine 文件夹、ZIP 整包（含 project.json 自动识别）</p><p class="sub" style="margin:0 0 20px;font-size:10.5px;opacity:.8">也可以直接把文件夹或 ZIP 拖进这个框</p>
+    <div style="width:54px;height:54px;border-radius:16px;background:#ffffff12;color:#d0d2d5;display:grid;place-items:center;margin:0 auto 15px;font-size:25px">↑</div><h2>导入壁纸</h2><p class="sub" style="margin:8px 0 6px">支持单文件、Wallpaper Engine 文件夹、ZIP 整包（含 project.json 自动识别）</p><p class="sub" style="margin:0 0 20px;font-size:10.5px;opacity:.8">可一次选多个 / 直接把一堆文件夹或 ZIP 拖进这个框，按顺序逐个导入</p>
     <input type="file" id="fileInput" multiple accept="image/*,video/*,.html" hidden>
     <input type="file" id="folderInput" webkitdirectory directory multiple hidden>
-    <input type="file" id="zipInput" accept=".zip" hidden>
+    <input type="file" id="zipInput" accept=".zip" multiple hidden>
     <div style="display:flex;gap:9px;justify-content:center;flex-wrap:wrap">
       <button class="primary" onclick="document.getElementById('fileInput').click()">选择本地文件</button>
       <button class="secondary" onclick="document.getElementById('folderInput').click()">导入 WE 文件夹</button>
@@ -906,6 +909,29 @@ let searchTerm='';
 let currentPage='home';
 
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+// 顶部引擎状态：绿点=正在播放，灰点+「已暂停」=暂停中。
+// 以前是写死的灰点「运行中」，既不反映真实状态也会误导（用户反馈）。
+// 用一个只取 paused 字段的轻量轮询，任何页面都实时；暂停按钮点完立即刷新不等轮询。
+let enginePaused=null;
+function setEngineStatus(paused){
+  enginePaused=!!paused;
+  const box=document.getElementById('engineStatus');
+  const text=document.getElementById('engineStatusText');
+  if(!box) return;
+  box.classList.toggle('paused',enginePaused);
+  box.classList.toggle('playing',!enginePaused);
+  if(text) text.textContent=enginePaused?'壁纸已暂停':'壁纸引擎运行中';
+}
+async function refreshEngineStatus(){
+  try{
+    const j=await (await fetch('/api/v1/play/state',{cache:'no-store'})).json();
+    if(j.code===0) setEngineStatus(j.data?.paused);
+  }catch{ /* 后端暂不可用：保持上次状态，不误导成暂停 */ }
+}
+setEngineStatus(false); // 默认按运行中显示（绿点），轮询会很快校准
+setInterval(refreshEngineStatus,3000);
+refreshEngineStatus();
 // 路径按段编码：main_file 可能是 "we-123/scene.pkg" 这种带子目录的写法，
 // 以前整体 encodeURIComponent 会把斜杠变成 %2F，靠服务端碰巧解回来才没出事。
 function mediaSegs(file){return String(file||'').split('/').filter(Boolean).map(encodeURIComponent).join('/')}
@@ -2938,6 +2964,10 @@ async function playTogglePause(){
     if(j.code!==0) throw new Error(j.message||'操作失败');
     playState.paused=!!j.data.paused;
     playEl('playPauseBtn').textContent=playState.paused?'▶ 继续播放':'Ⅱ 暂停壁纸';
+    setEngineStatus(playState.paused); // 顶部状态点立即同步，不等 3 秒轮询
+    // 通知主进程按渲染归属暂停真正的画面层：视频走内核（SSE 广播到不了内核），
+    // 网页/场景走壁纸页。少了这步，视频壁纸按暂停完全没反应。
+    try{ if(window.WF_SHELL?.setPaused) window.WF_SHELL.setPaused(playState.paused); }catch(_){}
     toast(playState.paused?'壁纸已暂停':'壁纸已恢复播放');
   }catch(e){ toast('操作失败：'+(e.message||e)); }
   finally{ playEl('playPauseBtn').disabled=false; }
@@ -3092,35 +3122,30 @@ $("#globalSearch").addEventListener("input",e=>{
 });
 
 $("#menuBtn").addEventListener("click",()=>$("#sidebar").classList.toggle("open"));
-// 单文件导入：抽成函数，供「选择文件」按钮和「拖入散文件」共用
-async function importSingleFiles(files){
-  files=[...files];
-  if(!files.length)return;
-  const doBake=$('#bakeOnImport')?.checked||false;
-  $("#fileStatus").textContent='正在导入 '+files.length+' 个文件…';
-  const importedSceneIds=[];
-  for(const f of files){
-    const ext=f.name.split('.').pop().toLowerCase();
-    const type=['mp4','webm'].includes(ext)?'video':ext==='html'?'web':'scene';
-    const fd=new FormData();
-    // 字段先于文件：multer 按流顺序解析，file 在前时后端拿不到 type
-    fd.append('type',type);fd.append('title',f.name.replace(/\.[^.]+$/,''));
-    fd.append('file',f);
-    try{
-      const r=await fetch(API,{method:'POST',body:fd});
-      const j=await r.json();
-      toast(j.code===0?'已导入：'+f.name:'导入失败：'+j.message);
-      if(j.code===0&&type==='scene'&&doBake) importedSceneIds.push(j.data?.id);
-    }catch(err){toast('上传失败：请确认后端已启动');}
-  }
-  $("#fileStatus").textContent='单文件最大支持 2GB';
-  await loadWalls();
-  // 自动转视频：切到本地页让用户看到进度，逐个转换
-  for(const id of importedSceneIds){ if(id!=null){ go('local'); await startBake(id); } }
+// ── 批量导入：三个纯导入函数只负责「传一个包给后端」，统一返回结构化结果 ──
+// 不在这里 toast/刷库/烘焙——交给 runImportQueue 统一做，避免批量时刷屏和重复渲染。
+function importResult(label,j,bakeType){
+  if(!j||j.code!==0) return {ok:false,label,error:(j&&j.message)||'导入失败'};
+  if(j.data?.duplicated) return {ok:true,duplicated:true,label,title:j.data.title};
+  const type=j.data?.type||bakeType;
+  return {ok:true,label,title:j.data?.title,type,id:j.data?.id,
+    bake:bakeType==='scene'&&j.data?.id!=null?j.data.id:null};
+}
+async function importOneFile(f){
+  const ext=f.name.split('.').pop().toLowerCase();
+  const type=['mp4','webm'].includes(ext)?'video':ext==='html'?'web':'scene';
+  const fd=new FormData();
+  // 字段先于文件：multer 按流顺序解析，file 在前时后端拿不到 type
+  fd.append('type',type);fd.append('title',f.name.replace(/\.[^.]+$/,''));
+  fd.append('file',f);
+  try{
+    const r=await fetch(API,{method:'POST',body:fd});
+    return importResult(f.name,await r.json(),type);
+  }catch(err){ return {ok:false,label:f.name,error:'上传失败：请确认后端已启动'}; }
 }
 $("#fileInput").addEventListener("change",async e=>{
   const files=[...e.target.files]; e.target.value='';
-  await importSingleFiles(files);
+  if(files.length) await runImportQueue(files.map(f=>({kind:'file',label:f.name,run:()=>importOneFile(f)})));
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeModal();closeFullscreen();batchTagsClose();}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();$("#globalSearch").focus();}});
 // 网页壁纸 iframe（跨源沙箱）内的 Esc 通过桥转发回来——父文档收不到 iframe 内部按键
@@ -3133,56 +3158,50 @@ window.addEventListener("message",e=>{
 const COMPAT='/api/v1/compat';
 // 系统/编辑器顺手塞进文件夹的垃圾，选的时候就不传，省流量也免得进库
 const IMPORT_JUNK=new Set(['__MACOSX','.DS_Store','Thumbs.db','desktop.ini','.workbuddy','node_modules','.git']);
-// 文件夹导入：pairs=[{f,rel}]，供「选择文件夹」按钮和「拖入文件夹」共用
+// 文件夹导入：pairs=[{f,rel}]，返回结构化结果
 async function importFolderPairs(pairs){
-  if(!pairs.length){ toast('这个文件夹里没有可导入的文件'); return; }
+  if(!pairs.length) return {ok:false,label:'文件夹',error:'这个文件夹里没有可导入的文件'};
   const files=pairs.map(p=>p.f);
   const rels=pairs.map(p=>p.rel);
-  const doBake=$('#bakeOnImport')?.checked||false;
-  $("#fileStatus").textContent='正在导入文件夹（'+files.length+' 个文件）…';
+  const label=rels[0].split('/')[0]||'文件夹';
   const fd=new FormData();
   files.forEach(f=>fd.append('files',f));
   fd.append('relativePaths',JSON.stringify(rels));
-  fd.append('folderName',rels[0].split('/')[0]||'');
-  let bakeId=null;
+  fd.append('folderName',label);
   try{
     const r=await fetch(COMPAT+'/import/folder',{method:'POST',body:fd});
-    const j=await r.json();
-    toast(j.code!==0?'导入失败：'+j.message:(j.data?.duplicated?'库里已有这个壁纸：'+j.data.title:'已导入：'+(j.data?.title||'成功')));
-    $("#fileStatus").textContent=j.code!==0?'导入失败，请查看提示':(j.data?.duplicated?'库里已有，未重复导入':'导入完成：'+(j.data?.title||''));
-    if(j.code===0&&!j.data?.duplicated&&j.data?.type==='scene'&&doBake) bakeId=j.data.id;
-  }catch(err){toast('导入失败：请确认后端已启动');}
-  await loadWalls();
-  if(bakeId!=null){ go('local'); await startBake(bakeId); }
+    return importResult(label,await r.json(),'scene');
+  }catch(err){ return {ok:false,label,error:'导入失败：请确认后端已启动'}; }
 }
 $("#folderInput").addEventListener("change",async e=>{
   const raw=[...e.target.files]; e.target.value='';
   if(!raw.length)return;
-  const pairs=raw
-    .map(f=>({f,rel:(f.webkitRelativePath||f.name).replace(/\\/g,'/')}))
-    .filter(({rel})=>!rel.split('/').some(seg=>IMPORT_JUNK.has(seg)));
-  await importFolderPairs(pairs);
+  // 多选文件夹：webkitRelativePath 第一段就是各自的文件夹名，按它分组
+  const byName=new Map();
+  for(const f of raw){
+    const rel=(f.webkitRelativePath||f.name).replace(/\\/g,'/');
+    if(rel.split('/').some(seg=>IMPORT_JUNK.has(seg))) continue;
+    const name=rel.split('/')[0]||'文件夹';
+    if(!byName.has(name)) byName.set(name,[]);
+    byName.get(name).push({f,rel});
+  }
+  const tasks=[...byName.entries()].map(([name,pairs])=>({kind:'folder',label:name,run:()=>importFolderPairs(pairs)}));
+  if(tasks.length) await runImportQueue(tasks);
+  else toast('选中的文件夹里没有可导入的文件');
 });
-// ZIP 导入：供「选择 ZIP」按钮和「拖入 ZIP」共用
+// ZIP 导入：返回结构化结果
 async function importZipFile(f){
-  if(!f)return;
-  const doBake=$('#bakeOnImport')?.checked||false;
-  $("#fileStatus").textContent='正在导入 ZIP：'+f.name;
+  if(!f) return {ok:false,label:'ZIP',error:'没有文件'};
+  const label=f.name||'ZIP';
   const fd=new FormData();fd.append('file',f);
-  let bakeId=null;
   try{
     const r=await fetch(COMPAT+'/import/zip',{method:'POST',body:fd});
-    const j=await r.json();
-    toast(j.code!==0?'导入失败：'+j.message:(j.data?.duplicated?'库里已有这个壁纸：'+j.data.title:'已导入：'+(j.data?.title||'成功')));
-    $("#fileStatus").textContent=j.code!==0?'导入失败，请查看提示':(j.data?.duplicated?'库里已有，未重复导入':'导入完成：'+(j.data?.title||''));
-    if(j.code===0&&!j.data?.duplicated&&j.data?.type==='scene'&&doBake) bakeId=j.data.id;
-  }catch(err){toast('导入失败：请确认后端已启动');}
-  await loadWalls();
-  if(bakeId!=null){ go('local'); await startBake(bakeId); }
+    return importResult(label,await r.json(),'scene');
+  }catch(err){ return {ok:false,label,error:'导入失败：请确认后端已启动'}; }
 }
 $("#zipInput").addEventListener("change",async e=>{
-  const f=e.target.files[0]; e.target.value='';
-  await importZipFile(f);
+  const files=[...e.target.files]; e.target.value='';
+  if(files.length) await runImportQueue(files.map(f=>({kind:'zip',label:f.name,run:()=>importZipFile(f)})));
 });
 
 // ---- 拖入文件夹 / ZIP / 散文件到导入框 ----
@@ -3204,6 +3223,52 @@ function readDirEntry(entry,prefix,out){
     }else resolve();
   });
 }
+// ── 批量导入队列：按给定顺序逐个导入，统一进度/汇总/一次刷库 ──
+// 批量时如果每个包各自 toast + loadWalls + startBake，拖 20 个包会刷屏 20 次、重渲染 20 次，
+// 又慢又乱。这里收口：全程只更新状态栏，结束后一次性刷新列表、一次性烘焙、一次性汇总。
+let importQueueRunning=false;
+async function runImportQueue(tasks){
+  if(importQueueRunning){ toast('上一批还在导入，请稍候'); return; }
+  if(!tasks.length) return;
+  importQueueRunning=true;
+  const btn=$('#cpGo'); // 复用不到就忽略，仅防止并发点击
+  const status=$('#fileStatus');
+  const oldText=status?.textContent;
+  const results=[];
+  try{
+    for(let i=0;i<tasks.length;i++){
+      const t=tasks[i];
+      if(status) status.textContent=`正在导入 ${i+1}/${tasks.length}：${t.label}`;
+      let res;
+      try{ res=await t.run(); }
+      catch(err){ res={ok:false,label:t.label,error:err?.message||'未知错误'}; }
+      results.push(res||{ok:false,label:t.label,error:'未返回结果'});
+    }
+    // 一次刷库 + 一次烘焙（烘焙仍逐个排队，但不重复切页/刷库）
+    await loadWalls();
+    const doBake=$('#bakeOnImport')?.checked||false;
+    if(doBake){
+      const bakeIds=results.filter(r=>r.bake!=null).map(r=>r.bake);
+      for(const id of bakeIds){ go('local'); await startBake(id); }
+    }
+    // 汇总：成功若干 / 重复若干 / 失败若干，失败的列出名字+原因
+    const ok=results.filter(r=>r.ok&&!r.duplicated).length;
+    const dup=results.filter(r=>r.duplicated).length;
+    const bad=results.filter(r=>!r.ok);
+    const parts=[`成功 ${ok}`,`重复 ${dup}`,`失败 ${bad.length}`];
+    if(status) status.textContent='导入完成：'+parts.join(' · ');
+    if(bad.length){
+      const detail=bad.slice(0,10).map(r=>`· ${r.label}：${r.error}`).join('\n')
+        +(bad.length>10?`\n…另有 ${bad.length-10} 个失败`:'');
+      console.warn('[批量导入失败项]\n'+detail);
+      toast('导入完成，但有 '+bad.length+' 个失败（详情见控制台）');
+    }else toast(`批量导入完成：成功 ${ok} · 重复 ${dup}`);
+  }finally{
+    importQueueRunning=false;
+    if(status&&oldText&&results.length===0) status.textContent=oldText;
+  }
+}
+
 (function initImportDropZone(){
   const zone=$("#localDropZone");
   if(!zone) return;
@@ -3215,25 +3280,31 @@ function readDirEntry(entry,prefix,out){
     e.preventDefault(); depth=0; zone.classList.remove('drag-over');
     const items=[...(e.dataTransfer?.items||[])];
     if(!items.length) return;
-    const dirs=[], zips=[], singles=[];
+    // 按拖入的原始顺序建任务，不按类型分组——用户要的就是「按顺序每个导入」。
+    // 文件夹要先递归展开（异步），这一步放在 run 里懒执行，保持顺序又不阻塞建队列。
+    const tasks=[];
     for(const it of items){
       if(it.kind!=='file') continue;
       const entry=it.webkitGetAsEntry?.();
-      if(entry?.isDirectory){ dirs.push(entry); continue; }
+      if(entry?.isDirectory){
+        const label=entry.name||'文件夹';
+        tasks.push({kind:'folder',label,run:async()=>{
+          const out=[];
+          await readDirEntry(entry,'',out);
+          const pairs=out.map(({f,rel})=>({f,rel:rel.replace(/\\/g,'/')}))
+            .filter(({rel})=>!rel.split('/').some(seg=>IMPORT_JUNK.has(seg)));
+          return importFolderPairs(pairs);
+        }});
+        continue;
+      }
       const f=it.getAsFile?.();
       if(!f) continue;
-      if(f.name.toLowerCase().endsWith('.zip')) zips.push(f); else singles.push(f);
+      if(f.name.toLowerCase().endsWith('.zip'))
+        tasks.push({kind:'zip',label:f.name,run:()=>importZipFile(f)});
+      else
+        tasks.push({kind:'file',label:f.name,run:()=>importOneFile(f)});
     }
-    for(const f of singles) await importSingleFiles([f]);
-    for(const f of zips) await importZipFile(f);
-    for(const entry of dirs){
-      const out=[];
-      await readDirEntry(entry,'',out);
-      const pairs=out
-        .map(({f,rel})=>({f,rel:rel.replace(/\\/g,'/')}))
-        .filter(({rel})=>!rel.split('/').some(seg=>IMPORT_JUNK.has(seg)));
-      await importFolderPairs(pairs);
-    }
+    if(tasks.length) await runImportQueue(tasks);
   });
 })();
 

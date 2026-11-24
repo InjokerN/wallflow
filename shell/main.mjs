@@ -641,7 +641,14 @@ async function ensureWallpaperWindow() {
 
 async function applyRenderMode(mode) {
   if (quitting || NO_ATTACH || !USE_NATIVE_CORE) return;
-  if (!mode || mode === renderMode) return;
+  // mode=null 表示「没有当前壁纸」（开机空库 / 删了当前壁纸）：必须销毁壁纸窗口让出桌面层，
+  // 否则窗口留在 WorkerW 里显示旧画面，桌面无法恢复原壁纸。以前这里直接 return 是 bug。
+  if (!mode) {
+    if (renderMode) { log('桌面渲染归属切换：', renderMode || '(none)', '→ (none)'); renderMode = null; }
+    destroyWallpaperWindow();
+    return;
+  }
+  if (mode === renderMode) return;
   log('桌面渲染归属切换：', renderMode || '(none)', '→', mode);
   renderMode = mode;
   // 媒体命令（hide/play）由后端 apply / restore 统一下发，内核 play 成功后
@@ -1026,6 +1033,12 @@ if (!app.requestSingleInstanceLock()) {
       const mode = renderBy === 'desktop' || renderBy === 'core' ? renderBy : null;
       if (mode) applyRenderMode(mode).catch((err) => log('即时切换渲染归属失败：', err?.message));
     });
+    // 手动暂停：复用统一的暂停原因聚合器（core 归属发内核 pause/stop；desktop 归属通知壁纸页）。
+    // 不套 NO_ATTACH/USE_NATIVE_CORE 守卫——那些只针对"贴桌面"，暂停在任何模式都该生效。
+    ipcMain.on('wf:paused', (_e, paused) => {
+      if (quitting) return;
+      notifyPaused(!!paused);
+    });
     // 设置页的「常规设置」：读 / 写都走这里。写的时候主进程立刻生效（开机项、托盘菜单等），
     // 不等下次启动 —— 用户点了开关就该马上看到结果。
     ipcMain.handle('wf:prefs', (e, patch) => {
@@ -1133,7 +1146,7 @@ if (!app.requestSingleInstanceLock()) {
         }, 1500);
       });
     } else {
-      log('真内核模式：按壁纸类型分配桌面渲染归属（视频/图片→内核，网页/场景→浏览器）');
+      log('真内核模式：按壁纸类型分配桌面渲染归属（视频→内核，图片/网页/场景→浏览器壁纸窗口）');
       if (!SELFTEST && !NO_ATTACH) {
         await restoreWallpaper();
         startRenderModeWatch();

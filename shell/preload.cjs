@@ -21,6 +21,9 @@ contextBridge.exposeInMainWorld('WF_SHELL', {
   pickFolder: () => ipcRenderer.invoke('wf:dialog', 'folder'),
   // 应用壁纸成功后立即通知主进程切换桌面渲染归属，避免等轮询的 1.2 秒空窗
   applied: (renderBy) => ipcRenderer.send('wf:applied', String(renderBy || '')),
+  // 手动暂停：前端写完 /play/pause 后通知主进程，由主进程按渲染归属暂停真正的画面层
+  // （core→内核 pause/stop，desktop→壁纸页）。以前只写库+SSE，视频走内核根本收不到，暂停无效。
+  setPaused: (paused) => ipcRenderer.send('wf:paused', !!paused),
   // 「常规设置」：不带参数是读，带对象是改（返回改完之后的整份设置）
   prefs: (patch) => ipcRenderer.invoke('wf:prefs', patch || null),
   // 应用规则：指定 exe 运行期间暂停壁纸。不带参数是读，带数组是改

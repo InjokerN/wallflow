@@ -117,9 +117,21 @@ export function buildProjectJson(meta) {
   };
 }
 
+// project.json 里的 file/preview 是相对壁纸目录的路径，必须挡住 ../ 越界：
+// 否则声明 ../../secret.mp4 会命中包外文件，登记出指向包外的 main_file。
+function safeDeclared(wallDir, declared) {
+  if (!declared || typeof declared !== 'string') return false;
+  const rel = declared.replace(/\\/g, '/');
+  if (rel.includes('..') || path.isAbsolute(rel) || /^[a-zA-Z]:/.test(rel)) return false;
+  const full = path.resolve(wallDir, rel);
+  const base = path.resolve(wallDir);
+  if (full !== base && !full.startsWith(base + path.sep)) return false;
+  return fs.existsSync(full) && fs.statSync(full).isFile();
+}
+
 // 判断文件夹里该用哪个主文件：优先 project.json 声明的 file，否则挑第一个媒体文件
 export function pickMainFile(wallDir, declared, type) {
-  if (declared && fs.existsSync(path.join(wallDir, declared))) return declared;
+  if (safeDeclared(wallDir, declared)) return declared;
   const exts = type === 'video'
     ? ['.mp4', '.webm']
     : type === 'web'
@@ -139,16 +151,18 @@ export function pickMainFile(wallDir, declared, type) {
     const bi = /^index\./i.test(b) ? 0 : 1;
     return ai - bi;
   });
-  return files[0] || declared || '';
+  // declared 只有通过 safeDeclared 才会走到函数开头返回；这里不能再回退到它，
+  // 否则 ../ 越界的声明会在「没找到媒体文件」时漏出去
+  return files[0] || '';
 }
 
 // 判断预览图
 export function pickPreview(wallDir, declared) {
-  if (declared && fs.existsSync(path.join(wallDir, declared))) return declared;
+  if (safeDeclared(wallDir, declared)) return declared;
   const imgs = fs.readdirSync(wallDir, { withFileTypes: true })
     .filter((e) => e.isFile() && ['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(path.extname(e.name).toLowerCase()))
     .map((e) => e.name);
-  if (!imgs.length) return declared || '';
+  if (!imgs.length) return '';
   // 没声明 preview 时不能随便抓第一张图：很多包根目录躺着 bg.png（背景素材），
   // 拿它当封面等于给用户看一张空背景。优先名字里带 preview/cover/thumb 的。
   const named = imgs.find((n) => /(^|[^a-z])(preview|cover|thumb)/i.test(n));

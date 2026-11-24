@@ -396,7 +396,12 @@
   }
 
   // ---------- 暂停 ----------
-  // 视频：pause 即可（保留播放进度）；场景/网页/图片：整层卸载，彻底停渲染
+  // 暂停 = 停止动态渲染，画面停在最后一帧（WE 同款语义），不是把壁纸卸掉。
+  // 旧实现把非 video 图层 dropAllLayers() 全卸了，露出的是窗口的黑色背景，
+  // 但窗口还挂在桌面层上 → 用户看到「暂停后桌面变黑」。这里改为保留图层、只停播放：
+  //   · video        → v.pause() 保留进度；
+  //   · scene/web/图片 → 图层原样留着（静态画面本就不动，WebGL/iframe 停在第一帧）；
+  // 不碰窗口本身（T28–T30 黑屏教训：动窗口生命周期/隐藏都会出事）。
   function recomputePaused(){
     const want=pausedAuto||pausedManual;
     if(want===paused) return;
@@ -407,16 +412,15 @@
     if(paused){
       if(top){
         const v=top.querySelector('video');
-        if(v){ v.pause(); }
-        else { dropAllLayers(); }
+        if(v) v.pause();   // 只停视频；其他类型保留画面，绝不清空图层
       }
     }else{
       if(top){
         const v=top.querySelector('video');
-        if(v){ if(v.paused) v.play().catch(()=>{}); }
-        else if(top._id!==curWall.w.id){ render(curWall.w, curWall.style); }
+        if(v && v.paused) v.play().catch(()=>{});
+        // 场景/网页/图片：图层一直在，无需重建（重建反而闪一下）
       }else{
-        render(curWall.w, curWall.style);
+        render(curWall.w, curWall.style);   // 图层确实不在（如暂停期间换了壁纸）才重建
       }
     }
   }

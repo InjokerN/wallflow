@@ -2,6 +2,8 @@ import { Router } from 'express';
 import multer from 'multer';
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import ffmpegStatic from 'ffmpeg-static';
 import db, { getLibraryDir } from '../db.js';
 import { resolveWallpaperDir, resolveMediaPath, wallpaperHealth } from '../library-path.js';
 import { newLocalFolder } from '../naming.js';
@@ -131,8 +133,56 @@ router.post('/', (req, res) => {
       }
     }
 
+    // 单文件图片按 WE「场景」规范补齐场景包：project.json + 独立缩略图。
+    //   · project.json 让信息完整、可导出、可发布云端（WE 里静态图就是 scene 类型）。
+    //   · preview.jpg 是真正缩小的最长边 512px 缩略图：否则卡片要加载几十 MB 的原图，
+    //     列表会卡到打不开（WE 也强制预览用小图，GIF 预览甚至限 128×128）。
+    // 主文件仍是原图（桌面壁纸窗口静态回退显示），cover 才指向小图。
+    // 视频/网页单文件不补：它们的 preview 语义不同（视频截图要ffmpeg 截帧，以后再做）。
+    let coverFile = fileName; // 默认回退：缩略图没生成成功就用原图当封面
+    if (type === 'scene') {
+      const IMG_EXT_SET = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.avif']);
+      const isImage = IMG_EXT_SET.has(ext);
+      const previewFile = isImage ? 'preview.jpg' : fileName;
+      try {
+        const project = {
+          title: String(req.body.title || path.basename(req.file.originalname, ext)),
+          type: 'scene',
+          file: fileName,
+          preview: previewFile,
+          description: '',
+          tags: [],
+          version: 1,
+        };
+        fs.writeFileSync(path.join(destDir, 'project.json'), JSON.stringify(project, null, 2));
+      } catch (e) {
+        console.warn('[单文件场景] project.json 写入失败（不影响入库）：', e?.message || e);
+      }
+      // 生成缩略图：用随包附带的 ffmpeg-static，最长边缩到 512px。
+      // 生成失败不阻塞入库——cover 回退到原图，最坏也只是回到老行为。
+      if (isImage) {
+        try {
+          const previewPath = path.join(destDir, 'preview.jpg');
+          const r = spawnSync(ffmpegStatic, [
+            '-y', '-i', finalPath,
+            '-vf', "scale='min(512,iw)':'min(512,ih)':force_original_aspect_ratio=decrease",
+            '-frames:v', '1', '-update', '1', '-q:v', '5',
+            previewPath,
+          ], { encoding: 'utf8', timeout: 15000, windowsHide: true });
+          if (r.status === 0 && fs.existsSync(previewPath) && fs.statSync(previewPath).size > 0) {
+            coverFile = previewFile;
+          } else {
+            console.warn('[单文件场景] 缩略图生成失败，封面回退原图：', String(r.stderr || '').slice(-200));
+          }
+        } catch (e) {
+          console.warn('[单文件场景] 缩略图跳过（ffmpeg 不可用）：', e?.message || e);
+        }
+      }
+    }
+
     // 相对库根的路径，写一次就够；以前 relDir 已含文件名又拼了一遍 basename
     const relFile = `${TYPE_DIR[type]}/${folder}/${fileName}`;
+    const relCover = `${TYPE_DIR[type]}/${folder}/${coverFile}`;
     const originalName = path.basename(req.file.originalname, ext);
     try {
       const info = db.prepare(`
@@ -142,11 +192,11 @@ router.post('/', (req, res) => {
         String(req.body.title || originalName).slice(0, 100),
         type,
         folder,
-        relFile,
+        relCover,
         relFile,
         String(req.body.category || '未分类').slice(0, 50)
       );
-      success(res, { id: Number(info.lastInsertRowid), type, main_file: relFile });
+      success(res, { id: Number(info.lastInsertRowid), type, main_file: relFile, cover: relCover });
     } catch (e) {
       cleanup();
       fail(res, 500, '入库失败：' + (e?.message || e));
@@ -253,6 +303,22 @@ router.delete('/:id', (req, res) => {
   } catch { /* 老库没有这张表也不影响删除本身 */ }
 
   db.prepare('DELETE FROM wallpapers WHERE id = ?').run(req.params.id);
+
+  // 删的正是当前壁纸：清掉 current_wallpaper 并让内核停播，桌面才会恢复原壁纸。
+  // 以前只删行不通知，内核还在播已删的文件（尤其图片/视频走内核那条路），桌面残留旧画面。
+  try {
+    const cur = db.prepare("SELECT value FROM app_state WHERE key = 'current_wallpaper'").get();
+    if (cur && Number(cur.value) === Number(req.params.id)) {
+      db.prepare("DELETE FROM app_state WHERE key = 'current_wallpaper'").run();
+      // 通知内核 hide（standby 让出桌面层）；失败不影响删除本身
+      const CORE_BASE = process.env.WF_CORE_URL || 'http://127.0.0.1:3002';
+      fetch(`${CORE_BASE}/api/core/command`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cmd: 'hide', id: Number(req.params.id), ts: Date.now() }),
+        signal: AbortSignal.timeout(2000),
+      }).catch(() => {});
+    }
+  } catch { /* 状态清理失败不影响删除 */ }
 
   // 目录定位统一走 resolveWallpaperDir：dir_name 有两种历史写法，不能只拼类型目录，
   // 否则会删到别人的壁纸（之前导出就是踩了同一个坑）。
