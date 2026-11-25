@@ -449,6 +449,39 @@ body.wf-selecting .wall-card,body.wf-selecting .we-card{transition:none}
    用伪元素盖在整张卡片(含缩略图)最上层——outline 会被 .thumb 内 z-index:2 的收藏/云按钮盖住。 */
 .wall-card.picked{position:relative}
 .wall-card.picked::after{content:"";position:absolute;inset:0;z-index:50;border:2px solid rgba(107,114,128,.5);background:transparent;border-radius:11px;pointer-events:none}
+/* ===== 拖拽（方案 B）：pointer 自绘 ghost + 落点反馈 =====
+   全部动画只走 transform/opacity 合成层；ghost 由 JS 每帧写 transform，不触发布局。 */
+/* 源卡片：拖拽中淡出，选中框保留但淡化 */
+.wall-card.wf-dragging{opacity:.32;transition:opacity .12s}
+.wall-card.wf-dragging.picked::after{border-color:#7f9fff99}
+/* 拖拽时全局禁文本选中/禁指针命中干扰 */
+body.wf-drag-active{user-select:none;cursor:grabbing!important}
+body.wf-drag-active *{cursor:grabbing!important}
+/* ghost 根容器：fixed，JS 每帧写 translate3d + rotate；will-change 仅在拖拽期开启 */
+.wf-ghost{position:fixed;left:0;top:0;z-index:9500;width:212px;pointer-events:none;
+  font-family:inherit;color:#fff;will-change:transform,opacity;transform-origin:50% 40%}
+.wf-ghost-layer{position:absolute;left:0;top:0;width:212px}
+.wf-ghost-card{position:relative;box-sizing:border-box;padding:7px;border-radius:14px;
+  background:#191c25;border:1px solid #ffffff3d;box-shadow:0 20px 48px #000c,0 2px 8px #0008}
+.wf-ghost-thumb{position:relative;height:120px;border-radius:9px;overflow:hidden;background:#292d3b}
+.wf-ghost-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.wf-ghost-title{margin-top:7px;padding:0 3px 2px;font-size:12px;font-weight:600;line-height:1.35;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wf-ghost-count{position:absolute;right:-10px;top:-10px;z-index:10;min-width:28px;height:28px;
+  padding:0 7px;border-radius:14px;background:#6b72ff;border:2px solid #fff;color:#fff;
+  font-size:13px;font-weight:600;display:grid;place-items:center;box-shadow:0 4px 12px #0008}
+/* 落点：文件夹卡片与树节点命中时明显放大发光 */
+.folder-card.drop-target,.folder-node.drop-target{
+  outline:2px solid #7f9fff!important;outline-offset:2px;
+  background:#5b7fd445!important;transform:scale(1.035);
+  box-shadow:0 0 0 4px #7f9fff33,0 0 26px #7f9fff77;
+  transition:transform .12s ease,box-shadow .12s ease}
+.folder-card.drop-target .thumb{border-color:#7f9fff}
+/* 落入成功的一次性脉冲（JS 加 drop-landed，动画结束移除） */
+@keyframes wfLanded{0%{transform:scale(1.035);box-shadow:0 0 0 4px #7f9fff33,0 0 26px #7f9fff77}
+  45%{transform:scale(1.09);box-shadow:0 0 0 10px #7f9fff55,0 0 40px #9db8ff}
+  100%{transform:scale(1);box-shadow:none}}
+.drop-landed{animation:wfLanded .42s ease-out}
 .lib-batchbar{position:fixed;left:50%;bottom:22px;transform:translate(-50%,150%);z-index:70;display:flex;align-items:center;gap:12px;flex-wrap:wrap;max-width:calc(100vw - 40px);padding:11px 16px;background:#15171ef2;border:1px solid #ffffff26;border-radius:12px;box-shadow:0 16px 40px #0008;transition:transform .22s}
 .lib-batchbar.on{transform:translate(-50%,0)}
 .lib-batchbar .secondary{font-size:11px;padding:8px 12px}
@@ -1159,8 +1192,7 @@ function folderCardHtml(f){
   const thumb=sample
     ? '<img loading="lazy" src="'+esc(coverUrl(sample))+'" alt="">'
     : '<div class="folder-empty-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>';
-  return '<article class="wall-card folder-card" data-fid="'+f.id+'" onclick="folderOpen('+f.id+')" '
-    +'ondragover="folderDragOver(event,'+f.id+')" ondragleave="folderDragLeave(event)" ondrop="folderDrop(event,'+f.id+')">'
+  return '<article class="wall-card folder-card" data-fid="'+f.id+'" onclick="folderOpen('+f.id+')">'
     +'<div class="thumb">'+thumb
     +'<span class="folder-count-tag">'+esc(String(f.count||0))+' 张</span>'
     +'<div class="title-overlay"><span class="folder-mini">📁</span>'+esc(f.name)+'</div>'
@@ -1198,7 +1230,7 @@ function card(w,deletable){
   })();
   // draggable 只给已框选的卡片：这样拖动=移动文件夹，单击/框选行为不变（不与 marquee 冲突）
   // 所有壁纸卡片都可拖：拖到文件夹节点/卡片即可把壁纸移入（未选中的会在 dragstart 自动选中）
-  return '<article class="wall-card'+(w.missing?' is-broken':'')+'" data-wid="'+w.id+'" draggable="true" onclick="openWallpaper('+w.id+')"><div class="thumb">'+thumb+'<div class="title-overlay">'+esc(w.title)+'</div>'+cloudMark+'<button class="fav '+(liked?'liked':'')+'" onclick="event.stopPropagation();favorite('+i+',this)" aria-label="收藏">'+(liked?'♥':'♡')+'</button>'+del+'</div><div class="card-info"><div class="tagline">'+cardTagHtml(w)+'</div>'+issueHtml+'</div></article>';
+  return '<article class="wall-card'+(w.missing?' is-broken':'')+'" data-wid="'+w.id+'" onclick="openWallpaper('+w.id+')"><div class="thumb">'+thumb+'<div class="title-overlay">'+esc(w.title)+'</div>'+cloudMark+'<button class="fav '+(liked?'liked':'')+'" onclick="event.stopPropagation();favorite('+i+',this)" aria-label="收藏">'+(liked?'♥':'♡')+'</button>'+del+'</div><div class="card-info"><div class="tagline">'+cardTagHtml(w)+'</div>'+issueHtml+'</div></article>';
 }
 
 // 「我的壁纸」的类型筛选只有筛选面板一个入口（localFilter.type），这里不再另设状态
@@ -1467,6 +1499,10 @@ function marqueeSpec(){
     if(!spec) return;
     const t=e.target;
     if(!(t instanceof Element)||t.closest(MARQUEE_BLOCK)) return;
+    // 关键（方案B）：壁纸卡片上起手交给 pointer 自绘拖拽系统，marquee 绝不介入。
+    // 旧实现里这里会建立框选、onMove 一超 6px 就把 picked 覆盖成单张——那是"框选一堆
+    // 一拖就只剩一张"的根因。空白处起手仍然走框选，两者分工明确、互不打架。
+    if(t.closest('.wall-card[data-wid]')) return;
     cur=spec; startEl=t;
     sx=e.clientX; sy=e.clientY; dragging=false;
     // 按住 Ctrl / Shift 时在现有选择上追加，否则从空开始
@@ -1575,8 +1611,7 @@ function folderNodeHtml(f,depth){
   const active=currentFolder===f.id;
   const safe=esc(f.name);
   return '<div class="folder-node'+(active?' active':'')+'" data-fid="'+f.id+'" '
-    +'onclick="folderOpen('+f.id+')" ondragover="folderDragOver(event,'+f.id+')" '
-    +'ondragleave="folderDragLeave(event)" ondrop="folderDrop(event,'+f.id+')">'
+    +'onclick="folderOpen('+f.id+')">'
     +'<span class="f-arrow'+(collapsed?' collapsed':'')+'" '+(kids.length?'onclick="event.stopPropagation();folderToggle('+f.id+')"':'')+'>'+(kids.length?'▾':'·')+'</span>'
     +'<span class="f-name" title="'+safe+'">'+safe+'</span>'
     +'<span class="f-count">'+f.count+'</span>'
@@ -1591,7 +1626,7 @@ function folderTreePaint(){
   const roots=folders.filter(f=>f.parent_id==null);
   const allCount=walls.length;
   const allNode='<div class="folder-node'+(currentFolder==null?' active':'')+'" data-fid="" '
-    +'onclick="folderOpen(null)" ondragover="folderDragOver(event,null)" ondragleave="folderDragLeave(event)" ondrop="folderDrop(event,null)">'
+    +'onclick="folderOpen(null)">'
     +'<span class="f-arrow">·</span><span class="f-name">全部壁纸</span><span class="f-count">'+allCount+'</span></div>';
   el.innerHTML=allNode+(roots.length?roots.map(f=>folderNodeHtml(f,0)).join(''):'<div class="folder-empty">还没有文件夹，点 ＋ 新建</div>');
   const badge=$('#folderBadge'); if(badge) badge.textContent=folders.length?('·'+folders.length):'';
@@ -1701,36 +1736,278 @@ async function folderDelete(id){
     await folderLoad(); await loadWalls(); render();
   }catch(e){ toast('删除失败：'+(e.message||e)); }
 }
-// 拖拽：框选的壁纸或右键单张，拖到文件夹节点/卡片上放入。
-// 拖未选中的卡片时自动把它补进 picked；写 dataTransfer 让 HTML5 drag 正式启动。
-document.addEventListener('dragstart',e=>{
-  const card=e.target.closest?.('.wall-card[data-wid]');
-  if(!card||!['mywallpapers','favorites'].includes(currentPage)) return;
-  // 关键：mousedown 已让 marquee 进入"待框选"状态，而 HTML5 drag 会吞掉 mouseup，
-  // 导致 onUp 永不触发、框卡在页面上。拖一开始立即复位框选状态。
-  try{ window.wfMarqueeReset?.(); }catch{}
-  const wid=Number(card.dataset.wid);
-  if(!picked.has(wid)){ picked.clear(); picked.add(wid); libPaint(); }
-  if(e.dataTransfer){
-    e.dataTransfer.effectAllowed='move';
-    try{ e.dataTransfer.setData('text/plain',[...picked].join(',')); }catch{}
+// ============================================================
+// 拖拽系统（方案 B）：pointer 自绘 ghost + 落点动画
+// 设计要点：
+//  1) 单一 rAF ticker + 弹簧插值 —— 也是后续交互动画可复用的薄原语层。
+//  2) 按住壁纸卡片超阈值才起拖；卡片上起手 marquee 已让位（见 onDown 守卫），
+//     picked 不被覆盖 —— 根治"框选一堆一拖只剩一张"。
+//  3) 拖已选卡片=整组走，拖未选卡片=自动补选后单张走。
+//  4) ghost 只写 transform/opacity；落点 rect 每次起拖重算（DOM 会重建）。
+//  5) 松手落入走 folderMove 整组移动；松空白弹回；Esc/失焦/pointercancel 全部兜底清理。
+// ============================================================
+
+// ---- 动画原语层：单 rAF ticker + 弹簧（供拖拽及后续交互复用） ----
+const Motion=(()=>{
+  let raf=0; const jobs=new Set();
+  function frame(){
+    for(const job of [...jobs]){
+      try{ if(job()===false) jobs.delete(job); }catch(e){ jobs.delete(job); }
+    }
+    raf=jobs.size?requestAnimationFrame(frame):0;
   }
-});
-// dragend 兜底：无论拖放成功/取消，都清掉可能残留的框选框与框选状态
-document.addEventListener('dragend',()=>{ try{ window.wfMarqueeReset?.(); }catch{} });
-function folderDragOver(e,id){
-  if(!picked.size&&folderPickerTarget==null) return;
-  e.preventDefault(); e.dataTransfer.dropEffect='move';
-  e.currentTarget.classList.add('drop-target');
-}
-function folderDragLeave(e){ e.currentTarget.classList.remove('drop-target'); }
-async function folderDrop(e,id){
-  e.preventDefault(); e.currentTarget.classList.remove('drop-target');
-  const ids=picked.size?[...picked]:(folderPickerTarget!=null?[folderPickerTarget]:[]);
-  if(!ids.length){ toast('先框选要移动的壁纸'); return; }
-  await folderMove(ids,id);
-  folderPickerTarget=null;
-}
+  function add(job){ jobs.add(job); if(!raf) raf=requestAnimationFrame(frame); return ()=>jobs.delete(job); }
+  // 弹簧：朝目标收敛。setTarget 可中途改目标（跟手），settled 判断是否收敛完毕。
+  function spring(pos,stiff=0.16,damp=0.74,eps=0.5){
+    let vel=0,target=pos;
+    const s={
+      step(){ const d=target-pos; vel=(vel+d*stiff)*damp; pos+=vel; return s; },
+      value(){ return pos; },
+      velocity(){ return vel; },
+      setTarget(v){ target=v; return s; },
+      target(){ return target; },
+      settled(){ return Math.abs(target-pos)<eps&&Math.abs(vel)<eps; },
+    };
+    return s;
+  }
+  return {add,spring};
+})();
+
+// ---- 拖拽状态机（用闭包，avoid 污染全局） ----
+(function smartDrag(){
+  const TH=6;                 // 起拖阈值（与 marquee 一致）
+  const GHOST_W=212,GHOST_H=170;
+  const DRAG_PAGES=['mywallpapers','favorites'];
+  let S=null;                 // 当前拖拽会话
+  let suppressClickUntil=0;   // 拖拽结束吞掉紧随的 click（防误开预览）
+  let rafCancel=null;
+
+  const inDrag=()=>S&&S.active;
+  const cardOf=el=>el&&el.closest?.('.wall-card[data-wid]');
+
+  // 构建 ghost：最多 3 层扇形 + 数量角标。封面来自 walls（脱离 DOM，防重建失效）。
+  function buildGhost(ids,anchorX,anchorY){
+    const root=document.createElement('div');
+    root.className='wf-ghost';
+    const shown=ids.slice(0,3);
+    shown.forEach((wid,i)=>{
+      const w=walls.find(x=>x.id===wid);
+      const layer=document.createElement('div');
+      layer.className='wf-ghost-layer';
+      // 扇形展开要一眼可见：偏移/角度比旧版翻倍，非顶层略微降亮度形成层次
+      const mid=Math.floor(shown.length/2);
+      const off=shown.length===1?{dx:0,dy:0,r:0,z:1}
+        :shown.length===2
+          ?(i===0?{dx:-26,dy:14,r:-13,z:1}:{dx:4,dy:-6,r:3,z:3})
+          :(i===0?{dx:-30,dy:16,r:-16,z:1}
+            :i===1?{dx:2,dy:-8,r:2,z:3}
+            :{dx:30,dy:16,r:16,z:2});
+      layer.style.zIndex=off.z;
+      if(i!==mid) layer.style.opacity='0.82';
+      layer.style.transform='translate('+off.dx+'px,'+off.dy+'px) rotate('+off.r+'deg)';
+      const cover=w&&!w.missing?esc(coverUrl(w)):'';
+      const title=esc((w&&w.title)||'壁纸');
+      // 角标挂在 card 层（不是 thumb）——thumb 有 overflow:hidden 会把右上角的角标裁掉
+      layer.innerHTML='<div class="wf-ghost-card"><div class="wf-ghost-thumb">'
+        +(cover?'<img src="'+cover+'" alt="">':'')
+        +'</div><div class="wf-ghost-title">'+title+'</div>'
+        +(i===mid&&ids.length>1?'<span class="wf-ghost-count">'+ids.length+'</span>':'')
+        +'</div>';
+      root.appendChild(layer);
+    });
+    root.style.opacity='0';
+    document.body.appendChild(root);
+    return root;
+  }
+
+  // 落点候选：文件夹卡片 + 文件夹树节点。每次起拖重算（卡片 DOM 会被 render 重建）。
+  function collectTargets(){
+    const els=[...document.querySelectorAll('.wall-card.folder-card[data-fid],.folder-node[data-fid]')];
+    return els.map(el=>{
+      const r=el.getBoundingClientRect();
+      return {el,fid:el.dataset.fid===''?null:Number(el.dataset.fid),
+              l:r.left,t:r.top,rgt:r.right,b:r.bottom,cx:(r.left+r.right)/2,cy:(r.top+r.bottom)/2};
+    }).filter(x=>x.rgt-x.l>0&&x.b-x.t>0);
+  }
+
+  function markSources(ids,on){
+    ids.forEach(wid=>{
+      const c=document.querySelector('.wall-card[data-wid="'+wid+'"]');
+      if(c) c.classList.toggle('wf-dragging',on);
+    });
+  }
+  function clearHover(){ if(S&&S.hover){ S.hover.el.classList.remove('drop-target'); S.hover=null; } }
+
+  function cleanup(full){
+    if(rafCancel){ cancelAnimationFrame(rafCancel); rafCancel=null; }
+    if(S){
+      if(S.ghost){ S.ghost.remove(); S.ghost=null; }
+      markSources(S.ids||[],false);
+      clearHover();
+      S=null;
+    }
+    document.querySelectorAll('.wall-card.wf-dragging').forEach(el=>el.classList.remove('wf-dragging'));
+    document.querySelectorAll('.folder-card.drop-target,.folder-node.drop-target').forEach(el=>el.classList.remove('drop-target'));
+    if(full) document.body.classList.remove('wf-drag-active');
+  }
+
+  // 每帧：弹簧推进 ghost 位置/缩放/透明，命中测试，落到目标或归位后收尾。
+  function frame(){
+    if(!S||!S.active){ return; }
+    const x=S.sx.step().value(), y=S.sy.step().value();
+    const sc=S.sc.step().value(), op=S.op.step().value();
+    // 摆动倾斜：用独立阻尼振荡量，移动时注入能量、松手后晃几下再停——比"速度直映射"
+    // 有明显得多的惯性感（速度直映射在匀速拖动时几乎为 0，看着就是静态贴鼠标）。
+    S.wobbleV=(S.wobbleV+(0-S.wobble)*0.22)*0.86; // 弹簧力 + 阻尼
+    S.wobble+=S.wobbleV;
+    if(Math.abs(S.wobble)<0.05&&Math.abs(S.wobbleV)<0.05){ S.wobble=0; S.wobbleV=0; }
+    // 只要一点点倾斜：限幅 7°（原 24° 太夸张）
+    const tilt=Math.max(-3.5,Math.min(3.5,S.wobble));
+    S.ghost.style.transform='translate3d('+x.toFixed(1)+'px,'+y.toFixed(1)+'px,0) '
+      +'rotate('+tilt.toFixed(1)+'deg) scale('+sc.toFixed(3)+')';
+    S.ghost.style.opacity=String(Math.max(0,Math.min(1,op)));
+
+    if(S.phase==='drag'){
+      // 目标跟随指针（ghost 顶部偏上一点，像被手指捏住上缘）
+      S.sx.setTarget(S.mx-GHOST_W/2);
+      S.sy.setTarget(S.my-58);
+      // 命中测试（滚动后目标位置可能变，低频重算：指针每移动 8px 或每 200ms）
+      const now=performance.now();
+      if(now-(S.lastScan||0)>120||Math.abs(S.mx-(S.scanX||0))>8||Math.abs(S.my-(S.scanY||0))>8){
+        S.targets=collectTargets(); S.lastScan=now; S.scanX=S.mx; S.scanY=S.my;
+      }
+      const hit=pickTarget(S.mx,S.my);
+      if(hit!==S.hover){ clearHover(); if(hit){ S.hover=hit; hit.el.classList.add('drop-target'); } }
+      rafCancel=requestAnimationFrame(frame);
+      return;
+    }
+
+    if(S.phase==='land'||S.phase==='return'){
+      const done=S.sx.settled()&&S.sy.settled()&&S.sc.settled()&&S.op.settled();
+      if(done){
+        const phase=S.phase, ids=S.ids.slice(), fid=S.landFid;
+        cleanup(true);
+        if(phase==='land'){ folderMove(ids,fid); }
+        return;
+      }
+    }
+    rafCancel=requestAnimationFrame(frame);
+  }
+
+  function begin(mx,my,card){
+    const ids=picked.has(S.wid)?[...picked]:(()=>{ picked.clear(); picked.add(S.wid); return [S.wid]; })();
+    if(ids.length>1) libPaint();
+    S.active=true; S.phase='drag'; S.ids=ids;
+    S.ghost=buildGhost(ids,mx,my);
+    S.targets=collectTargets();
+    markSources(ids,true);
+    document.body.classList.add('wf-drag-active');
+    try{ window.wfMarqueeReset?.(); }catch{}
+    // 摆动量：拿起瞬间给一点点初始晃动（收敛）
+    S.wobble=0.6; S.wobbleV=0;
+    // 位置弹簧调软（stiff 更小、damp 稍低）→ 跟手有可见滞后与轻微回弹
+    S.sx=Motion.spring(mx-GHOST_W/2,0.13,0.70); S.sy=Motion.spring(my-58,0.13,0.70);
+    // 缩放用 overshoot 弹簧：冲到 ~1.12 再回落，做出"弹出"手感
+    S.sc=Motion.spring(0.6,0.26,0.62,0.006); S.op=Motion.spring(0,0.26,0.7,0.02);
+    S.sc.setTarget(1); S.op.setTarget(1);
+    S.mx=mx; S.my=my;
+    rafCancel=requestAnimationFrame(frame);
+  }
+
+  // 公共命中判定：面积最小优先（浮层树节点 vs 网格文件夹卡片重叠时取更具体的）。
+  // frame 每帧与 release 松手瞬间都调用——松手用当前坐标重判，避免 rAF 节流延迟错判。
+  function pickTarget(mx,my){
+    let best=null,bestArea=Infinity;
+    for(const t of S.targets){
+      if(mx>=t.l-4&&mx<=t.rgt+4&&my>=t.t-4&&my<=t.b+4){
+        const area=(t.rgt-t.l)*(t.b-t.t);
+        if(area<bestArea){ best=t; bestArea=area; }
+      }
+    }
+    return best;
+  }
+
+  function release(mx,my){
+    if(!inDrag()) { S=null; return; }
+    suppressClickUntil=Date.now()+320;
+    // 松手前强制重收一次目标（滚动/浮层可能已改变位置），再用当前坐标重判落点
+    S.targets=collectTargets();
+    const hit=(mx>=0&&my>=0)?pickTarget(mx,my):null;
+    clearHover();
+    if(hit){
+      // 落入：飞向目标中心 + 放大回弹再缩进 + 落地脉冲，给"吸进去"的分量感
+      S.phase='land'; S.landFid=hit.fid;
+      S.sx.setTarget(hit.cx-GHOST_W/2); S.sy.setTarget(hit.cy-58);
+      S.sc.setTarget(0.15); S.op.setTarget(0);
+      S.wobbleV+=(S.wobble>0?1:-1); // 落入瞬间轻微甩一下
+      hit.el.classList.add('drop-landed');
+      setTimeout(()=>hit.el.classList.remove('drop-landed'),460);
+    }else{
+      // 未放进文件夹 = 当没发生过：立即清理，ghost 瞬间消失、源卡片立刻恢复不透明。
+      // 旧版用弹簧弹回卡片中心 + overshoot 淡出，导致两个难看现象：
+      //  ① 源卡片 opacity:.32 赖到动画收敛(~700ms)才恢复=黑色遮罩消失慢；
+      //  ② ghost 飞到卡片上方、opacity 来回过冲=半透明缩略图闪现在卡片上。
+      // 直接清理两个问题一起根治，且更符合"没放进去就复原"的直觉。
+      cleanup(true);
+    }
+    if(rafCancel) cancelAnimationFrame(rafCancel);
+    rafCancel=requestAnimationFrame(frame);
+  }
+
+  // ---- 事件绑定 ----
+  document.addEventListener('pointerdown',e=>{
+    if(e.button!==0) return;
+    if(!DRAG_PAGES.includes(currentPage)) return;
+    const card=cardOf(e.target);
+    if(!card) return;
+    // 卡片内的按钮/链接不触发拖拽
+    if(e.target.closest('button,a,input,select,textarea,label')) return;
+    S={active:false,phase:'pending',wid:Number(card.dataset.wid),
+       sx0:e.clientX,sy0:e.clientY,mx:e.clientX,my:e.clientY,pid:e.pointerId};
+    try{ card.setPointerCapture(e.pointerId); }catch{}
+  });
+
+  document.addEventListener('pointermove',e=>{
+    if(!S||e.pointerId!==S.pid) return;
+    if(S.active){
+      // 横向移动给轻微摆动：幅度收敛到很小（原 0.28/5.5 太夸张）
+      const dx=e.clientX-S.mx;
+      S.wobbleV+=Math.max(-1.0,Math.min(1.0,-dx*0.05));
+    }
+    S.mx=e.clientX; S.my=e.clientY;
+    if(!S.active){
+      if(Math.hypot(e.clientX-S.sx0,e.clientY-S.sy0)<TH) return;
+      begin(e.clientX,e.clientY);
+    }
+  },{passive:true});
+
+  document.addEventListener('pointerup',e=>{
+    if(!S||e.pointerId!==S.pid) return;
+    if(S.active) release(e.clientX,e.clientY); else S=null;
+    try{ e.target.releasePointerCapture?.(e.pointerId); }catch{}
+  });
+  document.addEventListener('pointercancel',e=>{
+    if(!S||e.pointerId!==S.pid) return;
+    // 指针被系统打断：直接清理（此时播弹回动画不可靠，且不该移动壁纸）
+    cleanup(true);
+  });
+  // 指针在窗口外松开：pointerup 可能丢失，用 window blur 兜底（直接清理，不依赖 rAF）
+  window.addEventListener('blur',()=>{ cleanup(true); });
+  // Esc 取消：直接清理，不移动
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&S){ cleanup(true); }
+  });
+  // 拖拽结束后吞掉紧随的 click，避免松手误开预览
+  document.addEventListener('click',e=>{
+    if(Date.now()<suppressClickUntil){
+      const t=e.target;
+      if(t instanceof Element&&t.closest('button,a,input,select,textarea,label')) return;
+      e.stopPropagation(); e.preventDefault();
+    }
+  },true);
+  // 全局禁掉原生 drag（图片/链接默认可拖会与自绘 ghost 打架）
+  document.addEventListener('dragstart',e=>{ if(cardOf(e.target)||e.target.closest?.('.wall-card')) e.preventDefault(); });
+})();
 async function folderMove(ids,folderId){
   try{
     const j=await (await fetch(FOLDERS+'/move',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids,folderId})})).json();
