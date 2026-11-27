@@ -240,6 +240,7 @@ function projectJsonFor(row) {
     file: row.main_file ? path.basename(row.main_file) : '',
     preview: row.cover ? path.basename(row.cover) : '',
     description: row.description,
+    author: row.author || '',
     tags: projectJsonTags(row.primary_tag),
   };
 }
@@ -252,6 +253,10 @@ function mergeTagsIntoProjectJson(text, row) {
     // 会出现「云端显示 A、下载下来叫 B」的错位。
     if (row.title) json.title = row.title;
     if (row.description) json.description = row.description;
+    // 作者跟库里对齐：导出包里带着用户改过的名字，再导入能读回（WE 忽略这个键）。
+    // 空作者删行，跟「清除作者」语义一致。
+    if (row.author) json.author = row.author;
+    else delete json.author;
     return JSON.stringify(json, null, '\t');
   } catch {
     return JSON.stringify(buildProjectJson(projectJsonFor(row)), null, '\t');
@@ -434,7 +439,8 @@ router.get('/project/:id', (req, res) => {
     title: row.title, type: row.type,
     file: row.main_file ? path.basename(row.main_file) : '',
     preview: row.cover ? path.basename(row.cover) : '',
-    description: row.description, tags: projectJsonTags(row.primary_tag),
+    description: row.description, author: row.author || '',
+    tags: projectJsonTags(row.primary_tag),
   }));
 });
 

@@ -143,6 +143,18 @@
     }catch(e){ return 'throw:'+(e.message||e); }
   }
 
+  // 声音状态下发进网页壁纸：整窗静音（setAudioMuted）管不住 sandbox iframe 里的
+  // 互动音效（new Audio().play()），所以由注入桥在声源层把 audio/video 一起 muted。
+  function pushSound(layer){
+    const f=layer&&layer._iframe;
+    if(!f) return;
+    let cw=null;
+    try{ cw=f.contentWindow; }catch(e){ return; }
+    if(!cw) return;
+    // 宿主默认静音：videoSound=false → 下发 muted=true（关声）
+    try{ cw.postMessage({source:'wallflow-host',type:'wf-sound',muted:!videoSound},'*'); }catch(e){}
+  }
+
   // 全局渲染节拍下发给网页壁纸（WE 同款 applyGeneralProperties({fps})）。
   // 遵守 WE 协议的壁纸脚本据此节流；不遵守的壁纸忽略即可，无害。
   function pushRenderFps(layer){
@@ -288,8 +300,10 @@
 
   // 声音开关是全局的：作用在所有视频图层上，只改 muted 不重建元素（重建会把进度归零）
   function applySound(){
-    // 网页壁纸里的音轨不在 <video> 上，整窗静音才管得住
+    // 网页壁纸里的音轨不在 <video> 上，整窗静音才管得住（视频壁纸 + 非沙箱内容）
     try{ if(window.WF_AUDIO) window.WF_AUDIO.setMuted(!videoSound); }catch(e){ /* 没有桥就只靠 video.muted */ }
+    // 沙箱 iframe 里的互动音效整窗静音管不住，额外下发到声源层
+    for(const l of layers) pushSound(l);
     for(const l of layers){
       l.querySelectorAll('video').forEach(v=>{
         if(v.muted===!videoSound) return;
@@ -357,6 +371,7 @@
       if(layer._dead) return;
       const r=pushProps(layer);
       pushRenderFps(layer);   // WE 协议：把全局节拍下发给壁纸脚本
+      pushSound(layer);       // 同步当前声音开关，避免新壁纸按默认静音覆盖用户选择
       setDebug('web load, props '+r);
     });
     layer.appendChild(f);

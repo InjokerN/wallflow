@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import db, { getLibraryDir, PROJECT_ROOT } from '../db.js';
-import { TYPE_DIR, copyDirRecursive } from '../we-format.js';
+import { TYPE_DIR, copyDirRecursive, DEFAULT_AUTHOR, setProjectAuthor } from '../we-format.js';
 import { resolveMediaPath, resolveWallpaperDir } from '../library-path.js';
 import { workshopFolder } from '../naming.js';
 import { ensureVideoAnim, ensureImageThumb, animAvailable } from '../preview-anim.js';
@@ -458,6 +458,9 @@ router.post('/import', (req, res) => {
     // 半个目录会永远留在库里，界面上看不见也没有入口能删（we-3799228186 就是这么来的）。
     let createdHere = false;
     try {
+      // 作者：we_items 扫描到就用它，没有就补默认。新复制的目录顺手把 author 写进
+      // project.json，保证文件与库一致；复用旧目录不动文件（避免改动已存在的条目）。
+      const author = String(row.author || '').trim() || DEFAULT_AUTHOR;
       if (!reused) {
         createdHere = true;
         copyDirRecursive(row.dir_path, target);
@@ -467,6 +470,7 @@ router.post('/import', (req, res) => {
         if (check.files !== row.file_count || (row.size_bytes && check.bytes !== row.size_bytes)) {
           throw new Error(`复制校验失败（源 ${row.file_count} 个文件 / ${row.size_bytes} 字节，副本 ${check.files} / ${check.bytes}）`);
         }
+        if (!String(row.author || '').trim()) setProjectAuthor(target, author);
       }
 
       const info = db.prepare(`
@@ -478,7 +482,7 @@ router.post('/import', (req, res) => {
         TYPE_DIR[row.type],
         row.preview ? `${folderName}/${row.preview}` : null,
         `${folderName}/${row.main_file}`,
-        row.author || '',
+        author,
         '壁纸引擎',
         row.description || '',
         `we:${row.workshop_id}`,

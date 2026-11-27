@@ -79,6 +79,10 @@ static std::string executeCommand(const std::string& cmd, const std::string& bod
             }
             clean += path[i];
         }
+        // Apply mute state carried with the play command BEFORE playback starts,
+        // so a freshly restarted core (g_muted default) matches the saved /sound.
+        bool muted = body.find("\"muted\":false") == std::string::npos;  // default muted
+        renderer::setMuted(muted);
         std::string detail;
         bool ok = renderer::play(clean, detail);
         if (ok) {
@@ -121,6 +125,12 @@ static std::string executeCommand(const std::string& cmd, const std::string& bod
         renderer::setPaused(paused);
         return "{\"code\":0,\"message\":\"ok\",\"data\":{\"received\":\"pause\"}}";
     }
+    if (cmd == "mute") {
+        bool muted = body.find("\"muted\":true") != std::string::npos ||
+                     body.find("\"muted\": true") != std::string::npos;
+        renderer::setMuted(muted);
+        return "{\"code\":0,\"message\":\"ok\",\"data\":{\"received\":\"mute\"}}";
+    }
     if (cmd == "fps") {
         size_t p = body.find("\"fps\"");
         if (p != std::string::npos) {
@@ -135,6 +145,7 @@ static std::string executeCommand(const std::string& cmd, const std::string& bod
         int fps = renderer::targetFps();
         std::string r = std::string("{\"code\":0,\"message\":\"ok\",\"data\":{\"decoderAlive\":")
             + (alive ? "true" : "false")
+            + ",\"muted\":" + (renderer::isMuted() ? "true" : "false")
             + ",\"targetFps\":" + std::to_string(fps)
             + ",\"presentCount\":" + std::to_string(renderer::presentedFrames())
             + ",\"pollCount\":" + std::to_string(renderer::pollTicks())

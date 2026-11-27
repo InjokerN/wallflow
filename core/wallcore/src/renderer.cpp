@@ -91,6 +91,7 @@ mpv_handle* g_mpv = nullptr;
 mpv_render_context* g_render = nullptr;
 std::string g_lastPath;
 bool g_paused = false;
+bool g_muted = true;   // 桌面视频默认静音（跟"应用即静音"老行为一致）；由 /sound 开关改写并跨 mpv 重建保持
 float g_coverScale = 1.0f;
 bool g_coverApplied = false;
 bool g_firstFrame = false;
@@ -339,7 +340,9 @@ bool createMpv(std::string& detail) {
     mpv_set_option_string(g_mpv, "hwdec-codecs", "h264,hevc,vp9,av1");
     mpv_set_option_string(g_mpv, "loop-file", "inf");
     mpv_set_option_string(g_mpv, "keep-open", "yes");
-    mpv_set_option_string(g_mpv, "mute", "yes");  // keep audio clock for stable timing
+    // Mute follows the user's /sound setting (default muted). Keeping the audio
+    // clock alive avoids timing drift even while muted.
+    mpv_set_option_string(g_mpv, "mute", g_muted ? "yes" : "no");
     mpv_set_option_string(g_mpv, "keepaspect", "yes");
     mpv_set_option_string(g_mpv, "terminal", "no");
     mpv_set_option_string(g_mpv, "msg-level", "all=warn");
@@ -475,6 +478,20 @@ void setPaused(bool paused) {
     int flag = paused ? 1 : 0;
     mpv_set_property(g_mpv, "pause", MPV_FORMAT_FLAG, &flag);
     logf("setPaused %d", flag);
+}
+
+void setMuted(bool muted) {
+    std::lock_guard<std::mutex> lock(g_apiMutex);
+    g_muted = muted;   // remember across mpv recreate (wallpaper switches)
+    if (!g_mpv) return;
+    int flag = muted ? 1 : 0;
+    mpv_set_property(g_mpv, "mute", MPV_FORMAT_FLAG, &flag);
+    logf("setMuted %d", flag);
+}
+
+bool isMuted() {
+    std::lock_guard<std::mutex> lock(g_apiMutex);
+    return g_muted;
 }
 
 void setTargetFps(int fps) {

@@ -19,6 +19,29 @@ export function copyDirRecursive(src, dest) {
 // Wallpaper Engine 格式约定：一个壁纸 = 一个文件夹 + project.json + 资源
 // 本模块集中处理 project.json 的识别与规范化，导入导出共用，保证两侧一致
 
+// 导入时 project.json 没有 author 行写入的默认作者。
+// WE 官方包本身不带 author（作者是工坊元数据），所以绝大多数导入都会补这一行。
+export const DEFAULT_AUTHOR = 'Moonight';
+
+// 局部合并写 author 到 project.json 顶层（和 title/description 平级），保留其余字段原样。
+// 只改这一个键，绝不碰 general.properties——那是 WE 的属性系统，动它会让壁纸读不出属性。
+// author 传空串 = 删除这一行（清作者）；返回是否写成功。
+// 任何异常（文件不存在 / JSON 坏了 / 磁盘只读）都吞掉返回 false，绝不阻塞导入或改作者主流程。
+export function setProjectAuthor(wallDir, author) {
+  try {
+    const found = findProjectJson(wallDir);
+    if (!found) return false;
+    const json = JSON.parse(fs.readFileSync(found.file, 'utf8'));
+    const val = String(author || '').trim().slice(0, 100);
+    if (val) json.author = val;
+    else delete json.author;
+    fs.writeFileSync(found.file, JSON.stringify(json, null, '\t'), 'utf8');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // 打包/系统顺手塞进来的垃圾目录，导入时一律丢掉：
 // 复制进库既占空间，又会让「文件数校验」和源对不上。
 export const JUNK_NAMES = new Set([
@@ -108,7 +131,7 @@ export function parseProjectJson(file) {
 // 生成规范 project.json（导出时若原文件夹没有则新建）
 export function buildProjectJson(meta) {
   const tags = Array.isArray(meta.tags) ? meta.tags : [];
-  return {
+  const out = {
     contentrating: 'Questionable',
     description: meta.description || '',
     file: meta.file || '',
@@ -121,6 +144,9 @@ export function buildProjectJson(meta) {
     type: TYPE_TO_WE[meta.type] || meta.type,
     version: 1,
   };
+  // 作者非空才写这一行；空作者不落盘，跟「清除作者=删行」语义一致。
+  if (meta.author) out.author = String(meta.author).slice(0, 100);
+  return out;
 }
 
 // project.json 里的 file/preview 是相对壁纸目录的路径，必须挡住 ../ 越界：

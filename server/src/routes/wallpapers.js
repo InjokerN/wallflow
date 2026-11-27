@@ -8,6 +8,7 @@ import db, { getLibraryDir } from '../db.js';
 import { resolveWallpaperDir, resolveMediaPath, wallpaperHealth } from '../library-path.js';
 import { newLocalFolder } from '../naming.js';
 import { normalizePrimaryTag, splitSubTags } from '../we-tags.js';
+import { setProjectAuthor, DEFAULT_AUTHOR } from '../we-format.js';
 
 const router = Router();
 const TYPE_DIR = { scene: '场景', video: '视频', web: '网页' };
@@ -151,6 +152,7 @@ router.post('/', (req, res) => {
           file: fileName,
           preview: previewFile,
           description: '',
+          author: DEFAULT_AUTHOR,
           tags: [],
           version: 1,
         };
@@ -186,14 +188,15 @@ router.post('/', (req, res) => {
     const originalName = path.basename(req.file.originalname, ext);
     try {
       const info = db.prepare(`
-        INSERT INTO wallpapers (title, type, dir_name, cover, main_file, category)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO wallpapers (title, type, dir_name, cover, main_file, author, category)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `).run(
         String(req.body.title || originalName).slice(0, 100),
         type,
         folder,
         relCover,
         relFile,
+        DEFAULT_AUTHOR,
         String(req.body.category || '未分类').slice(0, 50)
       );
       success(res, { id: Number(info.lastInsertRowid), type, main_file: relFile, cover: relCover });
@@ -229,10 +232,12 @@ router.patch('/:id', (req, res) => {
   const sets = [];
   const params = [];
 
+  let newAuthor = null;   // 本次是否改了作者（改了就在写库后同步回 project.json）
   if ('author' in body) {
     const author = String(body.author || '').trim().slice(0, 100);
     sets.push('author = ?');
     params.push(author);   // 空串 = 清除作者
+    newAuthor = author;
   }
   if ('description' in body) {
     sets.push('description = ?');
@@ -262,7 +267,21 @@ router.patch('/:id', (req, res) => {
   sets.push("updated_at = datetime('now','localtime')");
   params.push(req.params.id);
   db.prepare(`UPDATE wallpapers SET ${sets.join(', ')} WHERE id = ?`).run(...params);
-  success(res, db.prepare('SELECT * FROM wallpapers WHERE id = ?').get(req.params.id));
+  const updatedRow = db.prepare('SELECT * FROM wallpapers WHERE id = ?').get(req.params.id);
+
+  // 作者改了 → 同步回这张壁纸自己的 project.json（顶层 author 行，WE 会忽略不影响读取）。
+  // 只在确认改的是「这一张」的目录时写：老条目的 dir_name 可能是类型目录名（场景/视频/网页），
+  // 那种情况 resolveWallpaperDir 会指到整个类型目录，写进去等于污染一堆别的壁纸，必须挡住。
+  if (newAuthor !== null && updatedRow) {
+    try {
+      const dir = resolveWallpaperDir(updatedRow);
+      const base = path.basename(dir);
+      const isSharedTypeRoot = ['场景', '视频', '网页'].includes(base);
+      if (!isSharedTypeRoot) setProjectAuthor(dir, newAuthor);
+    } catch { /* 回写失败不影响数据库已保存的作者 */ }
+  }
+
+  success(res, updatedRow);
 });
 
 // 收藏开着 / 关掉。跟着壁纸行存，不另建表：删壁纸即等于取消收藏。

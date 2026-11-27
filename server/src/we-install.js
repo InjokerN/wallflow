@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import db, { getLibraryDir } from './db.js';
-import { TYPE_DIR, copyDirRecursive } from './we-format.js';
+import { TYPE_DIR, copyDirRecursive, DEFAULT_AUTHOR, setProjectAuthor } from './we-format.js';
 import { WE_TAG_SET } from './we-tags.js';
 import { updateOneSize } from './size-cache.js';
 import { newLocalFolder } from './naming.js';
@@ -89,5 +89,13 @@ export function installWallDir(wallDir, meta, mainFile, preview, wantedName, opt
   }
 
   copyDirRecursive(wallDir, target);
-  return { ...registerWallpaper(folderName, meta.type, meta, mainFile, preview), folder: folderName };
+
+  // 作者：project.json 有 author 行就用它（parseProjectJson 已读进 meta.author）；
+  // 没有就补默认 Moonight 到文件，并让入库字段跟文件一致。
+  // 写文件失败（只读盘 / JSON 损坏）也不阻塞入库，只是文件里没补上而已。
+  const rawAuthor = String(meta.author || '').trim();
+  if (!rawAuthor) setProjectAuthor(target, DEFAULT_AUTHOR);
+  const author = rawAuthor || DEFAULT_AUTHOR;
+
+  return { ...registerWallpaper(folderName, meta.type, { ...meta, author }, mainFile, preview), folder: folderName };
 }

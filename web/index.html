@@ -102,6 +102,8 @@ h1{font-size:28px;letter-spacing:-.8px;margin:5px 0 6px}h2{font-size:19px;letter
 .fit-switch span.fit-label{position:relative;z-index:1;padding:6px 15px;line-height:1;white-space:nowrap;transition:color .2s}
 .fit-switch[data-fit="cover"] .fit-label-cover,.fit-switch[data-fit="contain"] .fit-label-contain{color:#111}
 .fit-switch[data-fit="cover"] .fit-label-contain,.fit-switch[data-fit="contain"] .fit-label-cover{color:#e8e8e8}
+/* 网页壁纸是 iframe，没有 object-fit：全显时把它等比缩小居中，四周露出黑边（视觉上的 contain） */
+.modal-image[data-fit="contain"]>iframe{transform:scale(.85);transform-origin:center center}
 /* 发布到云端：单栏表单，盖在预览弹窗之上 */
 #cloudPub{z-index:26}
 #cloudPub .modal{display:flex;flex-direction:column;width:min(560px,94vw);height:auto;max-height:88vh}
@@ -420,24 +422,6 @@ body.app-mode .wf-winbar{display:flex;position:fixed;top:0;right:0;height:72px;a
 .we-danger:hover{background:#3a1f24;border-color:#7d3a45;color:#ffb3bd}
 .we-dirs{display:flex;flex-direction:column;gap:4px;margin-top:8px}
 .we-dirs code{font-size:10.5px;color:#9aa0ae;font-family:Consolas,monospace;word-break:break-all}
-/* 兼容性探测：卡片角标 + 试渲染浮层 */
-.we-cbadge{position:absolute;right:9px;top:34px;font-size:9px;padding:3px 7px;border-radius:5px;background:#11131bd9;color:#cfd2da;z-index:2;pointer-events:none}
-.we-cbadge.ok{color:#8fdcbc}.we-cbadge.partial{color:#ffcf8a}.we-cbadge.fail{color:#ff9aa6}
-.we-test{position:absolute;left:9px;bottom:9px;z-index:3;font-size:9.5px;padding:4px 8px;border-radius:5px;background:#11131be6;border:1px solid #ffffff2b;color:#d7dae2;cursor:pointer;opacity:0;transition:.15s}
-.we-card:hover .we-test{opacity:1}
-.we-test:hover{background:#2a2f3d;border-color:#ffffff55}
-#weProbe{position:fixed;inset:0;z-index:85;display:none;background:#05070bd9;backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:34px}
-#weProbe.on{display:flex}
-.we-probe-box{width:min(920px,92vw);max-height:88vh;display:flex;flex-direction:column;background:#12141b;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 30px 80px #000a}
-.we-probe-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line)}
-.we-probe-head b{font-size:12.5px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.we-probe-stage{position:relative;background:#08090d;aspect-ratio:16/9;max-height:58vh;display:grid;place-items:center;overflow:hidden}
-.we-probe-stage>*{max-width:100%;max-height:100%}
-.we-probe-stage video,.we-probe-stage iframe{width:100%;height:100%;border:0;object-fit:contain;background:#000}
-.we-probe-stage .wwgl-host{position:absolute;inset:0}
-.we-probe-foot{padding:12px 16px;display:flex;align-items:center;gap:12px;border-top:1px solid var(--line)}
-.we-probe-verdict{font-size:12px;font-weight:650}
-.we-probe-note{font-size:10.5px;color:var(--muted);flex:1;line-height:1.55}
 /* ===== 框选多选（所有网格共用） ===== */
 .wf-marquee{position:fixed;z-index:2000;border:1px solid #8ab4ff88;background:#8ab4ff14;border-radius:4px;pointer-events:none;box-shadow:0 4px 18px #0007}
 body.wf-selecting{user-select:none}
@@ -445,9 +429,11 @@ body.wf-selecting .wall-card,body.wf-selecting .we-card{transition:none}
 /* 卡片封面必须是不可拖拽的：img 默认 draggable，按住拖动会走原生 drag，框选直接失效 */
 .wall-card img,.we-card img{-webkit-user-drag:none;user-select:none}
 .we-grid,.grid.library-grid{user-select:none}
-/* 框选高亮：只画一个框、无填充；框本身 50% 半透明蓝。
-   用伪元素盖在整张卡片(含缩略图)最上层——outline 会被 .thumb 内 z-index:2 的收藏/云按钮盖住。 */
-.wall-card.picked{position:relative}
+/* 框选高亮：只画一个框、无填充；框本身 50% 半透明灰蓝。
+   用伪元素盖在整张卡片(含缩略图)最上层——outline 会被 .thumb 内 z-index:2 的收藏/云按钮盖住。
+   关键：给 picked 卡片自身 z-index:1 建立局部层叠上下文，把 ::after 的 z-index:50 关在卡片内部。
+   否则 50 会越过弹窗遮罩(默认 z-index:20、cloudPub 26)，在批量设定标签弹窗上浮出两个半透明空框。 */
+.wall-card.picked{position:relative;z-index:1}
 .wall-card.picked::after{content:"";position:absolute;inset:0;z-index:50;border:2px solid rgba(107,114,128,.5);background:transparent;border-radius:11px;pointer-events:none}
 /* ===== 拖拽（方案 B）：pointer 自绘 ghost + 落点反馈 =====
    全部动画只走 transform/opacity 合成层；ghost 由 JS 每帧写 transform，不触发布局。 */
@@ -482,7 +468,7 @@ body.wf-drag-active *{cursor:grabbing!important}
   45%{transform:scale(1.09);box-shadow:0 0 0 10px #7f9fff55,0 0 40px #9db8ff}
   100%{transform:scale(1);box-shadow:none}}
 .drop-landed{animation:wfLanded .42s ease-out}
-.lib-batchbar{position:fixed;left:50%;bottom:22px;transform:translate(-50%,150%);z-index:70;display:flex;align-items:center;gap:12px;flex-wrap:wrap;max-width:calc(100vw - 40px);padding:11px 16px;background:#15171ef2;border:1px solid #ffffff26;border-radius:12px;box-shadow:0 16px 40px #0008;transition:transform .22s}
+.lib-batchbar{position:fixed;left:50%;bottom:76px;transform:translate(-50%,150%);z-index:70;display:flex;align-items:center;gap:12px;flex-wrap:wrap;max-width:calc(100vw - 40px);padding:11px 16px;background:#15171ef2;border:1px solid #ffffff26;border-radius:12px;box-shadow:0 16px 40px #0008;transition:transform .22s}
 .lib-batchbar.on{transform:translate(-50%,0)}
 .lib-batchbar .secondary{font-size:11px;padding:8px 12px}
 /* ===== 壁纸引擎：批量测试进度 / 大图预览 ===== */
@@ -747,6 +733,8 @@ body.wf-drag-active *{cursor:grabbing!important}
       <button class="chip" data-wetype="web">网页</button>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
+      <button class="secondary" onclick="weSelectAll()" title="选中当前筛选结果里的全部壁纸">全选</button>
+      <button class="secondary" onclick="weSelectNone()" title="清空当前选中">取消选中</button>
       <button class="secondary we-filter-btn" id="weFilterBtn" onclick="weFilterToggle()">筛选<b id="weFilterBadge"></b></button>
     </div>
   </div>
@@ -759,15 +747,6 @@ body.wf-drag-active *{cursor:grabbing!important}
         <button class="chip" data-westatus="available">未复制</button>
         <button class="chip" data-westatus="imported">已复制</button>
         <button class="chip" data-westatus="missing">源缺失</button>
-      </div>
-    </div>
-    <div class="we-filter-row">
-      <span class="we-filter-label">兼容性</span>
-      <div class="we-chips" id="weCompatChips">
-        <button class="chip active" data-wecompat="">全部</button>
-        <button class="chip" data-wecompat="ok">能渲染</button>
-        <button class="chip" data-wecompat="broken">有问题</button>
-        <button class="chip" data-wecompat="untested">未测试</button>
       </div>
     </div>
     <div class="we-filter-row">
@@ -787,21 +766,10 @@ body.wf-drag-active *{cursor:grabbing!important}
     <b id="weSelCount" style="font-size:12px">已选 0 个</b>
     <span class="sub" style="font-size:10.5px">三个动作互相独立：复制不动源，删源不影响已复制的</span>
     <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
-      <button class="secondary" id="weTestAllBtn" onclick="weProbeAll()">全部测试</button>
-      <button class="secondary" onclick="weProbeSelected()">测试选中</button>
       <button class="secondary" onclick="weImportSelected()">复制到我的库</button>
       <button class="secondary we-danger" onclick="weDeleteSource()">删除引擎源文件</button>
       <button class="secondary we-danger" onclick="weUnsubscribe()">取消订阅</button>
     </div>
-  </div>
-
-  <div class="we-batch" id="weBatch">
-    <div class="we-batch-top">
-      <b id="weBatchTitle">正在测试…</b>
-      <span class="sub" id="weBatchStat" style="font-size:10.5px"></span>
-      <button class="secondary" id="weBatchStop" onclick="weProbeStop()">停止</button>
-    </div>
-    <div class="progress"><span id="weBatchBar" style="width:0%"></span></div>
   </div>
 </section>
 <section class="page" id="page-settings">
@@ -826,6 +794,7 @@ body.wf-drag-active *{cursor:grabbing!important}
       </div>
       <div id="appRuleList" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"></div>
     </div>
+    <div class="setting-row"><div><b>列表每页行数</b><small>壁纸库/收藏/发现页按行数分页：每页数量 = 当前列数 × 这里的行数，窗口越宽一页显示越多</small></div><select class="select" id="rowsPerPageSel" style="width:130px" onchange="setRowsPerPage(this.value)"><option value="5">5 行</option><option value="6">6 行</option><option value="7">7 行</option><option value="8">8 行</option><option value="9">9 行</option><option value="10">10 行</option></select></div>
     <div class="setting-row"><div><b>主题外观</b><small>浅色主题还在做，现在固定深色</small></div><select class="select" style="width:130px"><option>深色</option><option disabled>浅色（未上线）</option><option disabled>跟随系统（未上线）</option></select></div>
   </div>
 
@@ -994,6 +963,7 @@ body.wf-drag-active *{cursor:grabbing!important}
       <div class="cp-row"><span class="cp-label">范围</span><span class="sub" id="btScope"></span></div>
       <div class="cp-row"><span class="cp-label">主标签</span><select id="btPrimary" class="te-select" style="flex:1"></select></div>
       <div class="cp-row" style="align-items:flex-start"><span class="cp-label">副标签</span><div class="cp-subs" id="btSubs"></div></div>
+      <div class="cp-row"><span class="cp-label"></span><select id="btSubPick" class="te-select"><option value="">从已有标签里选…</option></select></div>
       <div class="cp-row"><span class="cp-label"></span><div class="te-add"><input id="btSubInput" class="te-input" maxlength="4" placeholder="新标签，最多 4 字" autocomplete="off"><button class="te-add-btn" id="btSubAdd" type="button">+ 添加</button></div></div>
       <div class="cp-row"><span class="cp-label">应用方式</span><select id="btMode" class="te-select" style="flex:1"><option value="replace">替换：选中项的副标签统一改成上面这份</option><option value="add">追加：在各自现有副标签上添加</option><option value="remove">移除：从各自现有副标签里删掉</option></select></div>
     </div>
@@ -1235,8 +1205,30 @@ function card(w,deletable){
 
 // 「我的壁纸」的类型筛选只有筛选面板一个入口（localFilter.type），这里不再另设状态
 
-// ---- 列表分页：四张列表共用一套翻页逻辑（每页 12 张 = 4 列 × 3 行） ----
-const PAGE_SIZE=12;
+// ---- 列表分页：三张列表共用一套翻页逻辑 ----
+// 每页数量 = 实际列数 × 每页行数；行数可在「设置 · 常规设置」里选 5–10，默认 5。
+// 列数由 CSS 的 auto-fill 随窗口宽度决定，这里从当前可见网格的 computed grid-template-columns 数出来。
+const ROWS_KEY='wf_rows_per_page';
+function getRowsPerPage(){
+  try{ const n=parseInt(localStorage.getItem(ROWS_KEY)||'5',10); return (n>=5&&n<=10)?n:5; }catch{ return 5; }
+}
+function setRowsPerPage(n){
+  n=parseInt(n,10); if(!(n>=5&&n<=10)) n=5;
+  try{ localStorage.setItem(ROWS_KEY,String(n)); }catch{}
+  resetPage('cloud','my','fav');
+  if(currentPage==='home') cloudRender(); else render();
+  toast('每页 '+n+' 行');
+}
+function gridColCount(){
+  // 只从当前可见的网格量列数：隐藏页的 grid 拿不到 computed template。
+  const grid=document.querySelector('.page.active .grid')
+    ||document.querySelector('#homeGrid,#myWallGrid,#favoriteGrid');
+  if(!grid) return 4;
+  const tpl=getComputedStyle(grid).gridTemplateColumns||'';
+  const n=tpl.trim()?tpl.trim().split(/\s+/).length:0;
+  return n>=1?n:4;                                 // 量不到就退回首屏常见的 4 列
+}
+function pageSize(){ return gridColCount()*getRowsPerPage(); }
 const pageState={cloud:1,my:1,fav:1};
 const GRID_OF={cloud:'homeGrid',my:'myWallGrid',fav:'favoriteGrid'};
 const PAGER_OF={cloud:'homePager',my:'myPager',fav:'favPager'};
@@ -1244,7 +1236,7 @@ const PAGER_OF={cloud:'homePager',my:'myPager',fav:'favPager'};
 function paintPage(key){ if(key==='cloud') cloudRender(); else render(); }
 
 function pagerHtml(key,total,pages,page){
-  if(total<=PAGE_SIZE) return '';                 // 只有一页就不显示页码条
+  if(total<=pageSize()) return '';                 // 只有一页就不显示页码条
   const nums=[];
   for(let i=1;i<=pages;i++){
     if(i===1||i===pages||Math.abs(i-page)<=1) nums.push(i);
@@ -1259,11 +1251,11 @@ function pagerHtml(key,total,pages,page){
 
 // 把整份列表按当前页码切片渲染，顺带把越界页码夹回有效范围（删除后常见）
 function renderList(gridSel,pagerSel,key,list,deletable,emptyMsg){
-  const total=list.length;
-  const pages=Math.max(1,Math.ceil(total/PAGE_SIZE));
+  const total=list.length, size=pageSize();
+  const pages=Math.max(1,Math.ceil(total/size));
   pageState[key]=Math.min(Math.max(1,pageState[key]),pages);
   const page=pageState[key];
-  const slice=list.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
+  const slice=list.slice((page-1)*size,page*size);
   $(gridSel).innerHTML=slice.length?slice.map(w=>card(w,deletable)).join(''):emptyHtml(emptyMsg);
   const p=$(pagerSel);
   if(p) p.innerHTML=pagerHtml(key,total,pages,page);
@@ -1457,10 +1449,11 @@ document.addEventListener('click',e=>{
 // 没拖动、起点又不在卡片上 = 点了空白 → 清空当前页全部选择。
 // 工具栏（类型/筛选那一行）不再整条排除：那一行右侧和间隙也是空白，用户在那儿按下应该能框选。
 // 行内的按钮/下拉/输入仍由后面的 button/select/input 兜住，不会误触。
-// 顶部栏、侧栏、筛选面板、底部悬浮操作条、分页器、首页大图和浮层照旧排除。
-const MARQUEE_BLOCK='.topbar,.sidebar,.we-filters,.we-batch,.we-actionbar,.pager,.hero,'
-  +'#modal,#weDetail,#weProbe,#cloudPub,#cloudDetail,.modal,.we-detail,.we-probe,button,a,input,select,textarea,label,summary';
-// 发现页只读云端目录，没有多选（不能批量删/导出别家的包），所以不参与框选
+// 顶部栏、侧栏、筛选面板、底部悬浮操作条、首页大图和浮层照旧排除。
+// 分页器不再整行排除：按钮/文字外的空白也能起框选；按钮(button)和页码文字(.pg-info/.pg-dots)单独排除，
+// 点它们仍是翻页，不会误起框选。
+const MARQUEE_BLOCK='.topbar,.sidebar,.we-filters,.we-actionbar,.hero,'
+  +'#modal,#weDetail,#cloudPub,#cloudDetail,.modal,.we-detail,button,a,input,select,textarea,label,summary,.pg-info,.pg-dots';
 const LOCAL_PAGES=['mywallpapers','favorites'];
 const MARQUEE_SPECS={
   local:{
@@ -1562,6 +1555,18 @@ function marqueeSpec(){
       e.stopPropagation(); e.preventDefault();
     }
   },true);
+  // 点空白取消框选的兜底：mousedown 被 MARQUEE_BLOCK 拦掉的区域（顶栏/页码行空白等）
+  // 走不到 onUp 的清空逻辑，这里在 click 冒泡阶段补一刀。
+  // 卡片上单击是「打开预览」不是取消，所以卡片/按钮/交互控件/浮层/悬浮操作栏一律排除。
+  document.addEventListener('click',e=>{
+    if(Date.now()<suppressUntil) return;           // 刚框选完的那次点击不算
+    const t=e.target;
+    if(!(t instanceof Element)) return;
+    if(t.closest('.wall-card,.we-card,.lib-batchbar,button,a,input,select,textarea,label,summary,'
+      +'.modal-backdrop.open,.ctx-menu,.folder-overlay.open,.pg-info,.pg-dots')) return;
+    const spec=marqueeSpec();
+    if(spec&&spec.selected().size) spec.clear();
+  });
   // 启动兜底：清掉历史残留（如上次拖拽卡住的）框选框与选中态样式
   document.querySelectorAll('.wf-marquee').forEach(el=>el.remove());
   document.body.classList.remove('wf-selecting');
@@ -1694,7 +1699,18 @@ document.addEventListener('click',e=>{
   folderPanelClose();
 });
 // 视口变化时重新贴位，避免浮层跑偏
-window.addEventListener('resize',()=>{ if($('#folderOverlay')?.classList.contains('open')) folderPanelPlace(); });
+let _lastCols=0,_resizeTimer=null;
+window.addEventListener('resize',()=>{
+  if($('#folderOverlay')?.classList.contains('open')) folderPanelPlace();
+  // 列数变了会改变每页条数，防抖后重绘当前列表；页码夹回有效范围。
+  clearTimeout(_resizeTimer);
+  _resizeTimer=setTimeout(()=>{
+    if(!['home','mywallpapers','favorites'].includes(currentPage)) return;
+    const cols=gridColCount();
+    if(_lastCols&&cols!==_lastCols){ _lastCols=cols; paintPage(currentPage==='home'?'cloud':'my'); }
+    else _lastCols=cols;
+  },180);
+});
 function folderOpen(id){ currentFolder=id; resetPage('my'); render(); }
 function folderToggle(id){
   if(folderCollapsed.has(id)) folderCollapsed.delete(id); else folderCollapsed.add(id);
@@ -1710,6 +1726,7 @@ async function folderCreate(parentId){
     if(j.code!==0) throw new Error(j.message);
     toast('已创建文件夹：'+j.data.name);
     await folderLoad();
+    render();  // 新建的文件夹卡片要立刻出现在库里，不用等刷新（T85）
   }catch(e){ toast('创建失败：'+(e.message||e)); }
 }
 async function folderRename(id){
@@ -1719,7 +1736,7 @@ async function folderRename(id){
   try{
     const j=await (await fetch(FOLDERS+'/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})})).json();
     if(j.code!==0) throw new Error(j.message);
-    toast('已重命名'); await folderLoad();
+    toast('已重命名'); await folderLoad(); render();  // 卡片标题同步刷新（T85）
   }catch(e){ toast('重命名失败：'+(e.message||e)); }
 }
 async function folderDelete(id){
@@ -2053,6 +2070,8 @@ function folderPickerChoose(id){
 let btSubs=new Set();
 function batchTagsOpen(){
   if(!picked.size){ toast('先框选要处理的壁纸'); return; }
+  // 关掉任何残留的框选框：它是 fixed/z-index:2000，会浮到弹窗上变成半透明空框
+  try{ window.wfMarqueeReset?.(); }catch{}
   btSubs=new Set();
   btPaintSubs();
   const sel=$("#btPrimary");
@@ -2076,6 +2095,15 @@ function btPaintSubs(){
   box.innerHTML=btSubs.size
     ?[...btSubs].map(t=>'<span class="te-chip">'+esc(t)+'<button data-btdel="'+esc(t)+'" title="移除">✕</button></span>').join('')
     :'<span class="sub" style="font-size:11px">（还没有副标签）</span>';
+  btPaintSubPick();
+}
+// 批量设定标签的「已有副标签」下拉：本地库用过的都列出来，已加进来的不重复列
+function btPaintSubPick(){
+  const pick=$('#btSubPick'); if(!pick) return;
+  const pool=[...new Set(walls.flatMap(x=>subsOf(x)))].filter(t=>!btSubs.has(t));
+  pick.innerHTML='<option value="">'+(pool.length?'从已有标签里选…':'还没有其它标签')+'</option>'
+    +pool.map(t=>'<option value="'+esc(t)+'">'+esc(t)+'</option>').join('');
+  pick.disabled=!pool.length;
 }
 document.addEventListener('click',e=>{
   const del=e.target.closest?.('[data-btdel]');
@@ -2255,6 +2283,8 @@ function toggleFit(el){
   el.dataset.fit=mode;
   const box=el.parentElement;                 // .modal-image
   if(!box) return;
+  // 容器同步 data-fit：CSS 据此对网页 iframe 做缩放居中（iframe 没有 object-fit）。
+  box.dataset.fit=mode;
   const w=walls.find(x=>x.id===currentWall);
   // 场景：热切换渲染器的 fit，不重挂载（setFit 内部会处理黑边背景）
   if(w&&w.type==='scene'&&activeScene&&typeof activeScene.setFit==='function'){
@@ -2368,6 +2398,7 @@ function openWallpaper(id){
   const box=document.querySelector('.modal-image');
   if(box){
     destroyScene();
+    box.dataset.fit='cover';   // fit 切换写在容器上，换壁纸要跟着开关一起回到默认（否则新壁纸 iframe 被旧状态缩放）
     if(w.type==='scene'){
       box.innerHTML='<div class="wwgl-host" style="position:absolute;inset:0"></div>'+
         '<img class="wwgl-fallback" src="'+esc(coverUrl(w))+'" alt="'+esc(w.title)+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">'+
@@ -2895,9 +2926,47 @@ async function deleteWallpaper(id){
 // ---- 卡片右键菜单：删除 / 上传云端 / 设为壁纸 ----
 // 事件委托到 document：网格是 innerHTML 重画的，绑在卡片上会被冲掉
 let ctxTargetId=null;
+let ctxWeId=null;   // 壁纸引擎卡片右键的目标 workshop_id
 document.addEventListener("contextmenu",(e)=>{
   const card=e.target.closest(".wall-card");
   const menu=$("#ctxMenu");
+  // 文件夹卡片右键：文件夹专属菜单（重命名 / 新建子文件夹 / 删除）。
+  // folder-card 也是 .wall-card 但没有 data-wid，必须在壁纸分支前拦下，
+  // 否则 Number(undefined)=NaN 会走空分支、什么都不弹。
+  if(card&&card.classList.contains('folder-card')){
+    const fid=Number(card.dataset.fid);
+    ctxTargetId=null;
+    e.preventDefault();
+    menu.innerHTML='<button onclick="ctxFolderRename('+fid+')">重命名文件夹</button>'
+      +'<button onclick="ctxFolderCreateSub('+fid+')">新建子文件夹</button>'
+      +'<div class="ctx-sep"></div>'
+      +'<button class="danger" onclick="ctxFolderDelete('+fid+')">删除文件夹</button>';
+    menu.classList.add("open");
+    const mw=menu.offsetWidth||160, mh=menu.offsetHeight||120;
+    let x=e.clientX,y=e.clientY;
+    if(x+mw>innerWidth-8) x=innerWidth-8-mw;
+    if(y+mh>innerHeight-8) y=innerHeight-8-mh;
+    menu.style.left=x+"px"; menu.style.top=y+"px";
+    return;
+  }
+  // 壁纸引擎卡片(.we-card，非 .wall-card)：打开源文件夹 / 查看详情
+  const weCard=e.target.closest('.we-card');
+  if(weCard){
+    const wid=weCard.dataset.id;
+    ctxTargetId=null; ctxWeId=wid;
+    e.preventDefault();
+    const it=weState.items.find(x=>x.workshop_id===wid);
+    const hasSrc=!!(it&&it.source_exists&&it.dir_path);
+    menu.innerHTML=(hasSrc?'<button onclick="ctxWeReveal()">打开源文件夹</button>':'<button disabled title="源文件已缺失">源文件夹不存在</button>')
+      +'<button onclick="ctxWeDetail()">查看壁纸详情</button>';
+    menu.classList.add('open');
+    const mw=menu.offsetWidth||160, mh=menu.offsetHeight||90;
+    let x=e.clientX,y=e.clientY;
+    if(x+mw>innerWidth-8) x=innerWidth-8-mw;
+    if(y+mh>innerHeight-8) y=innerHeight-8-mh;
+    menu.style.left=x+"px"; menu.style.top=y+"px";
+    return;
+  }
   // 空白区（壁纸库页）：弹文件夹相关菜单——新建文件夹 / 打开壁纸总目录
   if(!card){
     if(currentPage!=='mywallpapers') return closeCtxMenu();
@@ -2934,6 +3003,27 @@ function ctxCreateFolderHere(){
   closeCtxMenu();
   folderCreate(currentFolder);
 }
+// 壁纸引擎卡片右键：打开该壁纸在壁纸引擎里的源文件夹
+async function ctxWeReveal(){
+  const id=ctxWeId; closeCtxMenu();
+  if(!id) return;
+  const it=weState.items.find(x=>x.workshop_id===id);
+  if(!it||!it.source_exists||!it.dir_path){ toast('源文件夹已不存在'); return; }
+  try{
+    if(window.WF_SHELL&&typeof window.WF_SHELL.revealPath==='function'){
+      const res=await window.WF_SHELL.revealPath(it.dir_path);
+      if(res!=='ok') toast('源文件夹已不在磁盘上');
+    }else{
+      await navigator.clipboard.writeText(it.dir_path).catch(()=>{});
+      toast('已在剪贴板：'+it.dir_path);
+    }
+  }catch(e){ toast('打开失败：'+(e.message||e)); }
+}
+function ctxWeDetail(){ const id=ctxWeId; closeCtxMenu(); if(id) weDetailOpen(id); }
+// 文件夹卡片右键：与侧栏树节点复用同一套 CRUD（壁纸回流规则不变，见 folderDelete）
+function ctxFolderRename(id){ closeCtxMenu(); folderRename(id); }
+function ctxFolderCreateSub(id){ closeCtxMenu(); folderCreate(id); }
+function ctxFolderDelete(id){ closeCtxMenu(); folderDelete(id); }
 // 空白区右键：用系统文件管理器打开壁纸总目录
 async function ctxOpenLibraryDir(){
   closeCtxMenu();
@@ -4250,10 +4340,10 @@ function cloudRender(){
     if(pager) pager.innerHTML='';
     return;
   }
-  const total=list.length, pages=Math.max(1,Math.ceil(total/PAGE_SIZE));
+  const total=list.length, size=pageSize(), pages=Math.max(1,Math.ceil(total/size));
   pageState.cloud=Math.min(Math.max(1,pageState.cloud),pages);
   const page=pageState.cloud;
-  grid.innerHTML=list.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE).map(cloudCard).join('');
+  grid.innerHTML=list.slice((page-1)*size,page*size).map(cloudCard).join('');
   if(pager) pager.innerHTML=pagerHtml('cloud',total,pages,page);
 }
 
@@ -4391,7 +4481,8 @@ function cloudPublishOpen(){
   $('#cpTitle').value=w.title||'';
   $('#cpAuthor').value=w.author||'';
   authorListRefresh();            // 拉一次已有作者列表（详情弹窗共用缓存）
-  cpPaintAuthorPick();
+  // 候选下拉只在用户点/输入作者框时才弹（focusin/input 监听），开窗就弹会盖住下面的主标签。
+  const pick=$('#cpAuthorPick'); if(pick) pick.style.display='none';
   const sel=$('#cpPrimary');
   if(!sel.dataset.ready){
     sel.innerHTML='<option value="">未分类</option>'
@@ -4529,6 +4620,12 @@ document.addEventListener('change',e=>{
     if(v&&!cloudForm.subTags.includes(v)){ cloudForm.subTags.push(v); cpPaintSubs(); }
     else e.target.value='';
   }
+  // 批量设定标签：从已有标签里选一个副标签
+  if(e.target.id==='btSubPick'){
+    const v=e.target.value;
+    if(v&&!btSubs.has(v)) btSubs.add(v);
+    btPaintSubs();
+  }
 });
 document.addEventListener('keydown',e=>{
   if(e.target.id==='cpSubInput'&&e.key==='Enter'){ e.preventDefault(); cpAddSub(); }
@@ -4575,7 +4672,7 @@ cloudLoad();
 // ================= 壁纸引擎库 =================
 const WE_API='/api/v1/we';
 const SET_API='/api/v1/settings';
-const weState={items:[],page:1,pageSize:50,total:0,sel:new Set(),type:'',status:'',compat:'',keyword:'',tags:new Set(),info:null,loaded:false};
+const weState={items:[],page:1,pageSize:50,total:0,sel:new Set(),type:'',status:'',keyword:'',tags:new Set(),info:null,loaded:false};
 
 function weFmt(n){
   n=Number(n)||0;
@@ -4726,7 +4823,7 @@ async function weFetchPage(){
   const seq=++_weFetchSeq;
   const q=new URLSearchParams({
     page:weState.page, pageSize:weState.pageSize,
-    type:weState.type, status:weState.status, compat:weState.compat, keyword:weState.keyword,
+    type:weState.type, status:weState.status, keyword:weState.keyword,
     tags:[...weState.tags].join(','),
   });
   try{
@@ -4741,15 +4838,6 @@ async function weFetchPage(){
     weState.items=j.data.list;
     renderWeGrid();
   }catch(e){ if(seq===_weFetchSeq) toast('读取列表失败：'+e.message); }
-}
-
-function weCompatBadge(it){
-  const m=COMPAT_LABEL[it.compat];
-  if(!m) return '';
-  return `<span class="we-cbadge ${m[0]}" title="${esc(it.compat_note||'')}">${m[1]}</span>`;
-}
-function weTestBtn(it){
-  return `<button class="we-test" title="当场渲染一遍，看能不能用" onclick="event.stopPropagation();weProbeOpen('${esc(it.workshop_id)}')">测试</button>`;
 }
 
 function weCard(it){
@@ -4767,7 +4855,6 @@ function weCard(it){
     <div class="thumb${it.preview?'':' noimg'}"${it.type==='video'?` data-anim="${esc(it.workshop_id)}"`:''}>${img||'无预览'}</div>
     <div class="we-info"><div class="we-title" title="${esc(it.title)}">${esc(it.title||'未命名壁纸')}</div>
     <div class="we-meta"><span>${esc(weTypeLabel(it.type))}</span><span>${weFmt(it.size_bytes)}</span></div></div>
-    ${weTestBtn(it)}${weCompatBadge(it)}
   </article>`;
 }
 
@@ -4840,6 +4927,14 @@ function weToggle(id,checked){
   if(card){ card.classList.toggle('sel-on',checked); const cb=card.querySelector('input'); if(cb) cb.checked=checked; }
   weUpdateSel();
 }
+
+// 全选/取消选中：只作用于「当前筛选结果的当前页」，不动其它页或之前勾选的，语义可预期。
+function weSelectAll(){
+  (weState.items||[]).forEach(it=>weState.sel.add(it.workshop_id));
+  wePaintSel();
+  toast('已选中当前页 '+weState.items.length+' 个');
+}
+function weSelectNone(){ weState.sel.clear(); wePaintSel(); }
 
 // 框选后一次性重绘所有卡片的勾选态（比逐条改 DOM 稳，避免漏掉）
 function wePaintSel(){
@@ -5017,29 +5112,27 @@ function weFilterToggle(){
   if(weFilterOpen) weLoadTags();
 }
 function weFilterCount(){
-  return (weState.status?1:0)+(weState.compat?1:0)+weState.tags.size;
+  return (weState.status?1:0)+weState.tags.size;
 }
 function weFilterSync(){
   const n=weFilterCount();
   $('#weFilterBtn').classList.toggle('on',n>0);
   $('#weFilterBadge').textContent=n?'· '+n:'';
 }
-// 三组 chip 的亮/灭一律由 weState 推导，不再各点各 toggle。
+// 各组 chip 的亮/灭一律由 weState 推导，不再各点各 toggle。
 // 这样即使别处的点击逻辑误改了 class，下一次重绘也能纠正回来。
 function weFilterPaint(){
   document.querySelectorAll('#weTypeChips [data-wetype]').forEach(b=>
     b.classList.toggle('active',(b.dataset.wetype||'')===(weState.type||'')));
   document.querySelectorAll('#weStatusChips [data-westatus]').forEach(b=>
     b.classList.toggle('active',(b.dataset.westatus||'')===(weState.status||'')));
-  document.querySelectorAll('#weCompatChips [data-wecompat]').forEach(b=>
-    b.classList.toggle('active',(b.dataset.wecompat||'')===(weState.compat||'')));
   const tags=$('#weTagChips');
   if(tags) tags.querySelectorAll('[data-wetag]').forEach(b=>
     b.classList.toggle('active',weState.tags.has(b.dataset.wetag)));
   weFilterSync();
 }
 function weFilterReset(){
-  weState.status=''; weState.compat=''; weState.tags.clear();
+  weState.status=''; weState.tags.clear();
   weFilterPaint();
   weLoadItems(true);
   if(weFilterOpen) weLoadTags();
@@ -5049,7 +5142,7 @@ function weFilterReset(){
 // 结果与上次完全一致时不碰 DOM：以前每点一下都整体重写 innerHTML，标签栏会白闪一下。
 let weTagSeq=0, weTagKey=null;
 async function weLoadTags(){
-  const q=new URLSearchParams({type:weState.type,status:weState.status,compat:weState.compat,keyword:weState.keyword});
+  const q=new URLSearchParams({type:weState.type,status:weState.status,keyword:weState.keyword});
   const box=$('#weTagChips');
   if(!box) return;
   const seq=++weTagSeq;
@@ -5078,10 +5171,6 @@ async function weLoadTags(){
 
 document.querySelectorAll('#weStatusChips [data-westatus]').forEach(btn=>btn.addEventListener('click',()=>{
   weState.status=btn.dataset.westatus||'';
-  weFilterPaint(); weLoadItems(true); if(weFilterOpen) weLoadTags();
-}));
-document.querySelectorAll('#weCompatChips [data-wecompat]').forEach(btn=>btn.addEventListener('click',()=>{
-  weState.compat=btn.dataset.wecompat||'';
   weFilterPaint(); weLoadItems(true); if(weFilterOpen) weLoadTags();
 }));
 $('#weTagChips').addEventListener('click',e=>{
@@ -5411,340 +5500,15 @@ async function cloudTest(btn,quiet){
   }finally{ cloudBusy(btn,false); }
 }
 
-async function loadSettingsPage(){ await Promise.all([loadLibDir(),loadCloudCfg(),loadPrefsPage(),loadAppRulesPage()]); }
+async function loadSettingsPage(){
+  const sel=$('#rowsPerPageSel'); if(sel) sel.value=String(getRowsPerPage());
+  await Promise.all([loadLibDir(),loadCloudCfg(),loadPrefsPage(),loadAppRulesPage()]);
+}
 // ================= 兼容性探测：真渲染一遍，按首帧/像素判定 =================
 const WE_MEDIA=(id)=>WE_API+'/media/'+encodeURIComponent(id)+'/';
 function mediaJoin(base,rel){
   return base+String(rel||'').split('/').filter(Boolean).map(encodeURIComponent).join('/');
 }
-const COMPAT_LABEL={ok:['ok','✓ 能渲染'],partial:['partial','⚠ 有缺陷'],fail:['fail','✗ 打不开']};
-
-let probeCleanup=()=>{};
-function runProbeCleanup(){ try{ probeCleanup(); }catch{} probeCleanup=()=>{}; }
-
-function probeStageClear(stage){
-  stage.querySelectorAll('video').forEach(v=>{ try{ v.pause(); v.removeAttribute('src'); v.load(); }catch{} });
-  stage.innerHTML='';
-}
-
-// 纯色检测：把画面缩到 160×90 抽亮度方差，方差太小说明可能根本没画东西
-function frameVariance(source){
-  const c=document.createElement('canvas');
-  c.width=160; c.height=90;
-  const ctx=c.getContext('2d',{willReadFrequently:true});
-  ctx.drawImage(source,0,0,160,90);
-  const d=ctx.getImageData(0,0,160,90).data;
-  let sum=0,sum2=0,n=0;
-  for(let i=0;i<d.length;i+=4){
-    const l=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
-    sum+=l; sum2+=l*l; n++;
-  }
-  const mean=sum/n;
-  return { mean, variance:Math.max(0,sum2/n-mean*mean) };
-}
-
-function probeVideo(item,base,stage,ctx){
-  return new Promise(resolve=>{
-    const v=document.createElement('video');
-    v.muted=true; v.loop=true; v.playsInline=true; v.preload='auto';
-    let done=false; let timer=0;
-    const finish=(r)=>{ if(done) return; done=true; clearTimeout(timer); resolve(r); };
-    timer=setTimeout(()=>finish({result:'fail',note:'12 秒内没有加载出画面'}),12000);
-    ctx.destroy=()=>{ try{ v.pause(); v.removeAttribute('src'); v.load(); }catch{} };
-    v.addEventListener('error',()=>{
-      const code=v.error?.code;
-      const map={1:'加载被中断',2:'网络错误',3:'解码失败（编码不受支持）',4:'格式不受支持'};
-      finish({result:'fail',note:map[code]||('播放失败（错误码 '+code+'）')});
-    });
-    v.addEventListener('canplay',async()=>{
-      try{
-        await v.play().catch(()=>{});
-        await new Promise(r=>setTimeout(r,800));
-        if(!v.videoWidth) return finish({result:'fail',note:'能加载但解不出画面尺寸'});
-        const {variance}=frameVariance(v);
-        // 分辨率、时长、帧率这些数字用户明确不需要，界面上也不再出现；
-        // 方差仍然留在内部当判据——它抓的是"黑屏/纯色"这种最隐蔽的坏包。
-        if(variance<3) finish({result:'partial',note:'能播放，但画面几乎是纯色（可能没真正绘制）'});
-        else finish({result:'ok',note:''});
-      }catch(e){ finish({result:'partial',note:'能加载但抽帧失败：'+(e?.message||e)}); }
-    },{once:true});
-    v.src=mediaJoin(base,item.main_file);
-    stage.appendChild(v);
-  });
-}
-
-async function probeScene(item,base,stage,ctx){
-  const host=document.createElement('div');
-  host.className='wwgl-host';
-  // 显式给尺寸：探测容器可能不在任何页面样式里（批量测试是离屏跑的），
-  // 宿主没尺寸时 canvas 会是 0×0，永远等不到第一帧
-  host.style.cssText='position:absolute;inset:0;width:100%;height:100%';
-  if(getComputedStyle(stage).position==='static') stage.style.position='relative';
-  stage.appendChild(host);
-  const g=window.WebWallGL;
-  if(!g) return {result:'fail',note:'场景渲染库未加载'};
-
-  let inst=null;
-  let firstFrame=false;
-  let errMsg='';
-  ctx.destroy=()=>{ try{ inst?.destroy(); }catch{} };
-
-  try{
-    const p=g.mount(host,{
-      source:g.httpSource(base),
-      ...SCENE_PERF,
-      onFirstFrame:()=>{ firstFrame=true; },
-      onError:(e)=>{ errMsg=errMsg||String(e?.message||e).slice(0,160); },
-    });
-    Promise.resolve(p).then(i=>{ inst=i; }).catch(e=>{ errMsg=errMsg||String(e?.message||e).slice(0,160); });
-  }catch(e){ return {result:'fail',note:'挂载抛错：'+(e?.message||e)}; }
-
-  // onFirstFrame 不是所有构建都会回调，真正可靠的信号是"确实在出帧"：
-  // 看 stats.fps>0，再直接抓一次画面算方差。
-  const deadline=Date.now()+25000;
-  while(Date.now()<deadline){
-    if(errMsg) break;
-    const fps=Number(inst?.stats?.fps)||0;
-    if(firstFrame||fps>0) break;
-    await new Promise(r=>setTimeout(r,300));
-  }
-  if(errMsg) return {result:'fail',note:'渲染报错：'+errMsg};
-
-  const canvas=host.querySelector('canvas');
-  const fps=Number(inst?.stats?.fps)||0;
-  if(!canvas||(!firstFrame&&fps<=0)){
-    return {result:'fail',note:'25 秒内没有出帧，这个场景包可能不被支持'};
-  }
-  await new Promise(r=>setTimeout(r,900));
-
-  let variance=-1;
-  try{ variance=frameVariance(canvas).variance; }catch{ /* 取不到样就只用帧率判 */ }
-  if(variance>=0&&variance<3){
-    return {result:'partial',note:'出帧了，但画面几乎是纯色（可能没真正绘制）'};
-  }
-  return {result:'ok',note:''};
-}
-
-function probeWeb(item,base,stage,ctx){
-  return new Promise(resolve=>{
-    const f=document.createElement('iframe');
-    f.setAttribute('sandbox','allow-scripts');
-    f.setAttribute('scrolling','no');
-    let done=false; let timer=0;
-    const finish=(r)=>{ if(done) return; done=true; clearTimeout(timer); resolve(r); };
-    timer=setTimeout(()=>finish({result:'fail',note:'15 秒内没有加载完成'}),15000);
-    ctx.destroy=()=>{ try{ f.removeAttribute('src'); }catch{} };
-    f.addEventListener('load',()=>setTimeout(async()=>{
-      // 沙箱化后读不到 contentDocument（跨源），改用同源 fetch 拉 HTML 静态分析：
-      // 管理页与 /media 同源，fetch 拿到的是干净源码（bridge 只往文档响应里注入）
-      let note=''; let hasContent=false; let needsWE=false;
-      try{
-        const r=await fetch(f.src,{cache:'no-store'});
-        const html=await r.text();
-        needsWE=/wallpaperPropertyListener|wallpaperRegisterAudioListener/.test(html);
-        const media=(html.match(/<(img|canvas|video|svg|audio)\b/gi)||[]).length;
-        hasContent=html.length>200||media>0;
-        note=`HTML ${(html.length/1024).toFixed(0)}KB`+(media?` · 媒体引用 ${media} 处`:'');
-      }catch(e){ note='无法读取页面内容'; }
-      if(!hasContent) return finish({result:'partial',note:'页面能打开但内容较少'+(needsWE?' · 依赖壁纸引擎接口':'')});
-      finish({result:needsWE?'partial':'ok',note:needsWE?'用到壁纸引擎私有接口，交互可能失效':''});
-    },1500),{once:true});
-    f.addEventListener('error',()=>finish({result:'fail',note:'页面加载失败'}));
-    f.src=mediaJoin(base,item.main_file);
-    stage.appendChild(f);
-  });
-}
-
-async function probeOne(item,stage){
-  if(!item) return {result:'fail',note:'索引里没有这条记录'};
-  if(!item.source_exists) return {result:'fail',note:'源目录已不存在'};
-  if(!item.main_file) return {result:'fail',note:'没有可用的主文件'};
-  const base=WE_MEDIA(item.workshop_id);
-  // 先确认主文件真在磁盘上，否则「文件不存在」会被浏览器报成「格式不受支持」，容易误判
-  try{
-    const head=await fetch(mediaJoin(base,item.main_file),{method:'HEAD'});
-    if(!head.ok){
-      return {result:'fail',note:head.status===404?'主文件在磁盘上不存在':'主文件读取失败（HTTP '+head.status+'）'};
-    }
-  }catch{ /* 探测失败就让它继续走真实渲染 */ }
-  const ctx={};
-  probeCleanup=()=>ctx.destroy&&ctx.destroy();
-  try{
-    if(item.type==='video') return await probeVideo(item,base,stage,ctx);
-    if(item.type==='scene') return await probeScene(item,base,stage,ctx);
-    if(item.type==='web') return await probeWeb(item,base,stage,ctx);
-    return {result:'fail',note:'未知类型：'+(item.type||'空')};
-  }catch(e){
-    return {result:'fail',note:'探测异常：'+(e?.message||e)};
-  }
-}
-
-// 只重画卡片上的兼容角标 + 测试按钮：批量测试每测完一条就调一次
-function paintCompatCard(it){
-  const card=document.querySelector('.we-card[data-id="'+it.workshop_id+'"]');
-  if(!card) return;
-  card.querySelectorAll('.we-cbadge,.we-test').forEach(n=>n.remove());
-  card.insertAdjacentHTML('beforeend',weCompatBadge(it)+weTestBtn(it));
-}
-
-async function weSaveCompat(id,result,note){
-  const it=weState.items.find(x=>x.workshop_id===id);
-  if(it){ it.compat=result; it.compat_note=note; paintCompatCard(it); }
-  try{
-    await fetch(WE_API+'/compat',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({id,result,note}),
-    });
-  }catch{ /* 记账失败不影响结论展示 */ }
-}
-
-// ---- 单条测试（浮层） ----
-let probeCurrent=null;
-async function weProbeOpen(id){
-  const item=weState.items.find(x=>x.workshop_id===id);
-  if(!item){ toast('这条还没进索引，先扫描一次'); return; }
-  probeCurrent=id;
-  runProbeCleanup(); probeStageClear($('#weProbeStage'));
-  $('#weProbeTitle').textContent=item.title||'未命名壁纸';
-  $('#weProbeMeta').textContent=weTypeLabel(item.type)+' · '+weFmt(item.size_bytes);
-  $('#weProbeVerdict').textContent='正在加载…';
-  $('#weProbeVerdict').style.color='var(--muted)';
-  $('#weProbeNote').textContent='';
-  $('#weProbeRetry').style.display='none';
-  $('#weProbe').classList.add('on');
-  const r=await probeOne(item,$('#weProbeStage'));
-  const meta=COMPAT_LABEL[r.result]||['',''];
-  $('#weProbeVerdict').textContent=meta[1]||'结果未知';
-  $('#weProbeVerdict').style.color=r.result==='ok'?'#8fdcbc':(r.result==='partial'?'#ffcf8a':'#ff9aa6');
-  $('#weProbeNote').textContent=r.note||'';
-  $('#weProbeRetry').style.display='inline-block';
-  await weSaveCompat(id,r.result,r.note||'');
-}
-function weProbeRetry(){ if(probeCurrent) weProbeOpen(probeCurrent); }
-function weProbeClose(){
-  $('#weProbe').classList.remove('on');
-  probeCurrent=null;
-  runProbeCleanup(); probeStageClear($('#weProbeStage'));
-  // 从详情浮层点「重测」进来的，关掉测试后把新结论回填到详情，不用再开一次
-  if(weDetailId){
-    const it=weState.items.find(x=>x.workshop_id===weDetailId);
-    if(it) weDetailInfoPaint(it);
-  }
-}
-
-// ---- 批量测试（离屏跑，不打断操作） ----
-let probeBatchRunning=false;
-let probeAbort=false;
-
-function ensureProbeHost(){
-  let host=document.getElementById('weProbeHidden');
-  if(!host){
-    host=document.createElement('div');
-    host.id='weProbeHidden';
-    host.style.cssText='position:fixed;left:-3000px;top:0;width:640px;height:360px;overflow:hidden';
-    document.body.appendChild(host);
-  }
-  return host;
-}
-
-// 底部的进度条：测几千条时用户必须能看到进展、能中途叫停
-function probeBar(show,title,text,pct){
-  const bar=$('#weBatch');
-  if(!bar) return;
-  bar.classList.toggle('on',!!show);
-  if(title!=null) $('#weBatchTitle').textContent=title;
-  if(text!=null) $('#weBatchStat').textContent=text;
-  if(pct!=null) $('#weBatchBar').style.width=pct+'%';
-}
-
-async function flushCompat(batch){
-  if(!batch.length) return;
-  try{
-    await fetch(WE_API+'/compat/batch',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({items:batch}),
-    });
-  }catch{ /* 记账失败不影响结论展示，卡片角标已经改了 */ }
-}
-
-async function runProbeQueue(list,label){
-  if(probeBatchRunning){ toast('正在测试，先等这一批跑完或点「停止」'); return; }
-  if(!list.length){ toast('没有可测试的壁纸'); return; }
-  probeBatchRunning=true; probeAbort=false;
-  $('#weTestAllBtn').disabled=true;
-
-  const host=ensureProbeHost();
-  const stage=document.createElement('div');
-  stage.style.cssText='position:relative;width:640px;height:360px';
-  host.appendChild(stage);
-
-  const stat={ok:0,partial:0,fail:0};
-  let done=0;
-  const pending=[];
-  const t0=Date.now();
-  probeBar(true,label+' · 准备中…','',0);
-
-  try{
-    for(const it of list){
-      if(probeAbort) break;
-      done++;
-      probeBar(true,
-        `${label} · ${done}/${list.length} · ${(it.title||it.workshop_id||'').slice(0,20)}`,
-        '', Math.round((done-1)/list.length*100));
-      runProbeCleanup(); probeStageClear(stage);
-      const r=await probeOne(it,stage);
-      stat[r.result]=(stat[r.result]||0)+1;
-      pending.push({id:it.workshop_id,result:r.result,note:r.note||''});
-      // 已在页面上的卡片立刻更新角标，不用等整批跑完
-      const loc=weState.items.find(x=>x.workshop_id===it.workshop_id);
-      if(loc){ loc.compat=r.result; loc.compat_note=r.note||''; paintCompatCard(loc); }
-      if(pending.length>=20){ await flushCompat(pending.splice(0)); }
-    }
-  }finally{
-    await flushCompat(pending.splice(0));
-    runProbeCleanup(); probeStageClear(stage); stage.remove();
-    probeBatchRunning=false;
-    $('#weTestAllBtn').disabled=false;
-    const aborted=probeAbort;
-    probeBar(false);
-    const secs=Math.round((Date.now()-t0)/1000);
-    const left=aborted?` · 还剩 ${list.length-done} 个未测`:'';
-    toast(`${aborted?'测试已停止':'测试完成'}：能渲染 ${stat.ok}，有缺陷 ${stat.partial}，打不开 ${stat.fail}${left} · 用时 ${secs}s`);
-  }
-}
-
-function weProbeStop(){ probeAbort=true; }
-
-// 全部测试：按当前筛选条件取全部条目，已测过的也重测一遍（不跳过）
-async function weProbeAll(){
-  if(probeBatchRunning){ toast('正在测试，先等这一批跑完或点「停止」'); return; }
-  let list;
-  try{
-    const q=new URLSearchParams({
-      type:weState.type,status:weState.status,compat:weState.compat,keyword:weState.keyword,
-    });
-    const j=await (await fetch(WE_API+'/ids?'+q)).json();
-    if(j.code!==0) throw new Error(j.message);
-    list=j.data.list;
-  }catch(e){ toast('读取待测列表失败：'+e.message); return; }
-  if(!list.length){ toast('当前筛选下没有可测试的壁纸'); return; }
-  const scene=list.filter(x=>x.type==='scene').length;
-  const est=Math.max(1,Math.round(list.length*4/60));
-  if(!confirm(
-    `将重新测试当前筛选下的全部 ${list.length} 个壁纸（已测过的也会再测一遍）。\n\n`+
-    `其中场景 ${scene} 个，单个最多等 25 秒；视频和网页通常几秒内出结果。\n`+
-    `粗略估计 ${est} 分钟左右，过程中可以随时点「停止」，已测的结果会保留。\n\n开始吗？`
-  )) return;
-  await runProbeQueue(list,'全部测试');
-}
-
-async function weProbeSelected(){
-  const ids=[...weState.sel];
-  if(!ids.length){ toast('先勾选要测试的壁纸'); return; }
-  const list=ids.map(id=>weState.items.find(x=>x.workshop_id===id)).filter(Boolean);
-  await runProbeQueue(list,'测试选中');
-}
-
 // ================= Steam 订阅（真调用 Steamworks） =================
 const weSteamApi={connected:false,total:0,dll:'',origin:''};
 
@@ -5894,16 +5658,12 @@ function weDetailRender(it){
 function weDetailInfoPaint(it){
   const info=$('#weDInfo');
   if(!info) return;
-  const cm=COMPAT_LABEL[it.compat];
-  // 兼容性只给一个结论；只有非 ok 时才跟原因（ok 还跟一句「渲染成功」纯属重复）
-  const compatText=cm?(cm[1]+(it.compat!=='ok'&&it.compat_note?' · '+it.compat_note:'')):'未测试';
   const cells=[
     ['类型',weTypeLabel(it.type)],
     ['大小',weFmt(it.size_bytes)],
     ['作者',it.author||'',it.wallpaper_id?'editable':''],
     ['ID',it.workshop_id],
     ['状态',it.wallpaper_id?'已复制到我的库':(it.source_exists?'未复制':'源缺失')],
-    ['兼容性',compatText],
   ].filter(([,v])=>v!==''&&v!==null&&v!==undefined);
 
   const tags=String(it.tags||'').split(',').map(s=>s.trim()).filter(Boolean);
@@ -6008,11 +5768,6 @@ function weDetailRefresh(){
   weDetailRender(it);
 }
 
-async function weDetailTest(){
-  if(!weDetailId) return;
-  weProbeOpen(weDetailId);
-}
-
 async function weDetailImport(){
   if(!weDetailId) return;
   if(await weImportIds([weDetailId])) weDetailRefresh();
@@ -6040,7 +5795,6 @@ document.addEventListener('click',e=>{
   if(!down||down!==e.target) return;
   if(e.target.id==='modal') closeModal();
   else if(e.target.id==='weDetail') weDetailClose();
-  else if(e.target.id==='weProbe') weProbeClose();
   else if(e.target.id==='cloudPub') cloudPubClose();
   else if(e.target.id==='cloudDetail') cloudDetailClose();
   else if(e.target.id==='batchTags') batchTagsClose();
@@ -6049,21 +5803,6 @@ document.addEventListener('click',e=>{
 window.weEnter=weEnter;
 </script>
 
-<div id="weProbe">
-  <div class="we-probe-box">
-    <div class="we-probe-head">
-      <b id="weProbeTitle">测试中…</b>
-      <span class="sub" id="weProbeMeta" style="font-size:10.5px"></span>
-      <button class="icon-btn" onclick="weProbeClose()" title="关闭">✕</button>
-    </div>
-    <div class="we-probe-stage" id="weProbeStage"></div>
-    <div class="we-probe-foot">
-      <span class="we-probe-verdict" id="weProbeVerdict">正在加载…</span>
-      <span class="we-probe-note" id="weProbeNote"></span>
-      <button class="secondary" id="weProbeRetry" style="display:none" onclick="weProbeRetry()">重测</button>
-    </div>
-  </div>
-</div>
 <!-- 壁纸引擎：大图预览 + 单条操作 -->
 <div id="weDetail">
   <div class="we-detail-box">
@@ -6078,7 +5817,6 @@ window.weEnter=weEnter;
     <div class="we-detail-foot">
       <div class="we-detail-info" id="weDInfo"></div>
       <div class="we-detail-acts">
-        <button class="secondary" onclick="weDetailTest()">重测兼容性</button>
         <button class="secondary" id="weDImport" onclick="weDetailImport()">复制到我的库</button>
         <button class="secondary we-danger" id="weDDelete" onclick="weDetailDeleteSource()">删除引擎源文件</button>
         <button class="secondary we-danger" id="weDUnsub" onclick="weDetailUnsub()">取消订阅</button>

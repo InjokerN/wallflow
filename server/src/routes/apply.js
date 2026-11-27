@@ -94,6 +94,8 @@ router.post('/restore', onlyLocal, async (req, res) => {
   const ok = await notifyCore({
     cmd: media ? 'play' : 'hide', id, type: row.type, path: media, renderBy,
     style: db.prepare("SELECT value FROM app_state WHERE key = 'wallpaper_style'").get()?.value || 'fill',
+    // 声音状态跟壁纸一起下发给内核，避免内核重启后静音设置丢失（T85）
+    muted: db.prepare("SELECT value FROM app_state WHERE key = 'play_video_sound'").get()?.value !== '1',
     ts: Date.now(),
   });
   success(res, {
@@ -131,6 +133,7 @@ router.post('/:id', onlyLocal, async (req, res) => {
     path: media,
     renderBy,
     style,
+    muted: db.prepare("SELECT value FROM app_state WHERE key = 'play_video_sound'").get()?.value !== '1',
     ts: Date.now(),
   }).catch(() => {});
 

@@ -17,6 +17,10 @@ bool play(const std::string& utf8Path, std::string& detail);
 // Pause / resume playback.
 void setPaused(bool paused);
 
+// Mute / unmute desktop video audio (global; survives decoder recreation).
+void setMuted(bool muted);
+bool isMuted();
+
 // Stop playback and unload decoder immediately (free memory) - tier2 / shutdown.
 void stop();
 

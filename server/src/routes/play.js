@@ -20,6 +20,19 @@ const router = Router();
 const success = (res, data) => res.json({ code: 0, message: 'ok', data });
 const fail = (res, status, message) => res.status(status).json({ code: status, message, data: null });
 
+// 桌面视频由独立 C++ 内核（mpv）渲染，声音不受 Electron 壁纸窗口的 setAudioMuted 管。
+// 声音开关必须另外下发到内核，否则两个开关都影响不到桌面（T85）。内核不可达就静默跳过。
+const CORE_BASE = process.env.WF_CORE_URL || 'http://127.0.0.1:3002';
+async function notifyCoreCommand(cmd, extra = {}) {
+  try {
+    await fetch(`${CORE_BASE}/api/core/command`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cmd, ...extra, ts: Date.now() }),
+      signal: AbortSignal.timeout(3000),
+    });
+  } catch { /* 内核没起来：壁纸记录照常写 */ }
+}
+
 // ---------- app_state 小工具 ----------
 
 const getState = (key) => db.prepare('SELECT value FROM app_state WHERE key = ?').get(key)?.value ?? null;
@@ -152,10 +165,13 @@ const soundState = () => ({ sound: getState('play_video_sound') === '1' });
 
 router.get('/sound', (req, res) => success(res, soundState()));
 
-router.post('/sound', (req, res) => {
+router.post('/sound', async (req, res) => {
   const sound = !!req.body?.sound;
   setState('play_video_sound', sound ? '1' : '0');
   broadcast({ type: 'sound', sound });
+  // 内核视频 mpv 才是真正出声的那一层：把静音状态同步下去（T85）。
+  // muted = 声音开关的反面；fire-and-forget，内核不可达不影响响应。
+  notifyCoreCommand('mute', { muted: !sound });
   success(res, { sound });
 });
 
