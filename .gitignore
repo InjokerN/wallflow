@@ -36,6 +36,7 @@ core/wallcore/build/
 三方案技术评估与方案3实施纲要.md
 GITHUB-推送指引.md
 WallFlow-崩溃排查记录.md
+用户账号与云端中转方案.md
 
 # 日志、备份、临时文件
 *.log

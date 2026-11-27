@@ -22,15 +22,14 @@
 button,input{font:inherit}button{cursor:pointer;color:inherit;border:0} .app{min-height:100vh;display:flex}
 .sidebar{width:var(--sidebar);background:#121315;border-right:1px solid var(--line);padding:24px 15px 18px;display:flex;flex-direction:column;position:fixed;inset:0 auto 0 0;z-index:5}
 .brand{display:flex;align-items:center;gap:11px;padding:2px 10px 28px;font-size:18px;font-weight:750;letter-spacing:-.5px}
-.brand-mark{width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#777b82,#44474d);display:grid;place-items:center;box-shadow:0 7px 24px #0008}
+.brand-mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#777b82,#44474d);display:grid;place-items:center;box-shadow:0 7px 24px #0008;overflow:hidden;flex:none}
+.brand-mark img{width:100%;height:100%;object-fit:cover;display:block}
 .brand-mark svg{width:19px;height:19px}
 .nav-label{font-size:10px;color:#777d90;letter-spacing:1.3px;font-weight:700;padding:12px 12px 8px}
 .nav{display:grid;gap:4px}.nav button{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border-radius:10px;background:transparent;color:#aeb2c0;text-align:left;transition:.18s}
 .nav button:hover{background:#ffffff0a;color:white}.nav button.active{background:#ffffff12;color:#f0f0f0}.nav svg{width:18px;height:18px;opacity:.9}
 .nav .count{margin-left:auto;font-size:11px;color:#85899a}
-.sidebar-bottom{margin-top:auto}.profile{display:flex;align-items:center;gap:10px;padding:14px 9px 3px;border-top:1px solid var(--line);margin-top:18px}
-.avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#e5a98e,#8c75d9);display:grid;place-items:center;font-weight:700;color:#211b35}
-.profile small{display:block;color:var(--muted);font-size:11px}
+.sidebar-bottom{margin-top:auto}
 .main{margin-left:var(--sidebar);width:calc(100% - var(--sidebar));min-width:0}
 .topbar{height:76px;display:flex;align-items:center;padding:0 38px;border-bottom:1px solid var(--line);gap:18px;position:sticky;top:0;background:#101116ed;backdrop-filter:blur(18px);z-index:4}
 .search{height:40px;max-width:440px;flex:1;display:flex;align-items:center;gap:10px;background:#1b1e28;border:1px solid var(--line);border-radius:11px;padding:0 13px;color:var(--muted)}
@@ -87,14 +86,19 @@ h1{font-size:28px;letter-spacing:-.8px;margin:5px 0 6px}h2{font-size:19px;letter
 /* 应用内确认弹层：替代原生 confirm（Electron 里原生窗会闪现/焦点怪异） */
 #appConfirm .bt-modal{box-shadow:0 20px 60px #000c}
 #acNo{min-width:76px}.progress{height:5px;background:#303341;border-radius:5px;margin-top:8px;overflow:hidden}.progress span{height:100%;display:block;background:linear-gradient(90deg,#aeb2b8,#62c7a1);border-radius:5px}
-.modal-backdrop{position:fixed;inset:0;background:#05060bd9;backdrop-filter:blur(8px);z-index:20;display:none;align-items:center;justify-content:center;padding:25px}.modal-backdrop.open{display:flex}
+/* 顶部留 88px：应用模式顶栏是 -webkit-app-region:drag（72px 高），
+   弹窗内容若伸进这条拖拽区，真实鼠标点上半部分会被系统当成拖窗口（双击=最大化），
+   程序化 click 却不受影响——所以弹窗必须整体落在拖拽区下方。 */
+.modal-backdrop{position:fixed;inset:0;background:#05060bd9;backdrop-filter:blur(8px);z-index:20;display:none;align-items:center;justify-content:center;padding:88px 25px 25px}.modal-backdrop.open{display:flex}
 /* 预览弹窗：高度给出确定值（88vh 与 720 取小），左右两列都按这一行撑满。
    以前只有 max-height，网格行高仍按内容算，右栏内容一长，整个弹窗就被 max-height 截断，
    下面的按钮和标签编辑器被切掉。现在行高跟容器绑定，右栏自己滚动，永远不会截内容。 */
-.modal{width:min(1120px,100%);background:#191c25;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 25px 80px #0009;display:grid;grid-template-columns:1.15fr 1fr;grid-template-rows:minmax(0,1fr);height:min(90vh,910px);max-height:90vh}
+.modal{width:min(1120px,100%);background:#191c25;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 25px 80px #0009;display:grid;grid-template-columns:1.15fr 1fr;grid-template-rows:minmax(0,1fr);height:min(calc(100vh - 113px),910px);max-height:calc(100vh - 113px)}
 .modal-image{min-height:0;background:#101116;position:relative}.modal-image img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
 .modal-info{padding:25px;overflow:auto;min-height:0}.modal-info h2{font-size:21px;margin:12px 0 6px}.modal-info p{font-size:12px;color:var(--muted);line-height:1.8}.detail-list{margin:20px 0}.detail-item{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:12px}.detail-item span:first-child{color:var(--muted)}
-.close{position:absolute;right:13px;top:13px;width:34px;height:34px;border-radius:9px;background:#101116cc;z-index:2;display:grid;place-items:center}
+/* 关闭按钮提到最上层并加深底色：网页壁纸内容里常自带一个 ✕，
+   不盖住会看到两个 ✕ 上下错位、像按钮没对准图标。 */
+.close{position:absolute;right:11px;top:11px;width:34px;height:34px;border-radius:9px;background:#101116f2;border:1px solid #ffffff2b;color:#fff;z-index:60;display:grid;place-items:center;box-shadow:0 4px 14px #0009}
 /* 详情预览窗顶部的「铺满 / 全显」连体切换：默认铺满，点右侧滑到全显 */
 .fit-switch{position:absolute;left:50%;top:13px;transform:translateX(-50%);z-index:4;display:flex;background:#000b;border:1px solid #ffffff40;border-radius:999px;font-size:11px;color:#fff;cursor:pointer;user-select:none;overflow:hidden}
 .fit-switch .fit-slider{position:absolute;top:0;left:0;width:50%;height:100%;background:#fff;border-radius:999px;transition:transform .2s ease}
@@ -159,8 +163,6 @@ body{background:var(--bg);color:var(--text);font-family:Inter,"SF Pro Display","
 .nav button:hover{background:#ffffff08;color:#f5f5f3}
 .nav button.active{background:#ffffff0d;color:#f3f3f1;box-shadow:inset 2px 0 #d5d6d3}
 .nav button.active svg{color:#f0f0ed}
-.profile{border-color:#ffffff0d}
-.avatar{background:linear-gradient(145deg,#777b7d,#343638);color:#fff}
 .topbar{height:72px;padding:0 42px;background:#0b0c0ded;border-color:#ffffff0a}
 .search{background:#141619;border:1px solid #ffffff0b;border-radius:9px;max-width:470px;height:39px}
 .search:focus-within{border-color:#ffffff28}
@@ -340,7 +342,8 @@ select option{background:#1b1e21;color:#e8e9e6}
 .content:has(#page-favorites.active),
 .content:has(#page-home.active){max-width:none}
 /* 分页条：单页时隐藏，翻页/筛选复位由脚本控制 */
-.pager{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:26px;flex-wrap:wrap}
+/* 页码与最后一行卡片之间留出一条空隙，供框选后的悬浮操作栏落进去，不压卡片也不压页码 */
+.pager{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:48px;flex-wrap:wrap}
 .pager:empty{display:none}
 .pager .pg{min-width:32px;height:32px;padding:0 10px;background:#ffffff08;border:1px solid #ffffff16;color:#a9adb0;border-radius:8px;font-size:11px;cursor:pointer;transition:background .18s,color .18s}
 .pager .pg:hover:not(:disabled){background:#ffffff14;color:#fff}
@@ -468,7 +471,10 @@ body.wf-drag-active *{cursor:grabbing!important}
   45%{transform:scale(1.09);box-shadow:0 0 0 10px #7f9fff55,0 0 40px #9db8ff}
   100%{transform:scale(1);box-shadow:none}}
 .drop-landed{animation:wfLanded .42s ease-out}
-.lib-batchbar{position:fixed;left:50%;bottom:76px;transform:translate(-50%,150%);z-index:70;display:flex;align-items:center;gap:12px;flex-wrap:wrap;max-width:calc(100vw - 40px);padding:11px 16px;background:#15171ef2;border:1px solid #ffffff26;border-radius:12px;box-shadow:0 16px 40px #0008;transition:transform .22s}
+/* 隐藏态必须真正移出屏幕：bottom 提到 76px 后，原来的 translateY(150%) 不够，
+   栏底仍露在视口内，导致不框选时也一直挂着一条。
+   用 calc(100% + 90px)=自身高度+90px 下移，无论按钮是否换行都能完全藏住。 */
+.lib-batchbar{position:fixed;left:50%;bottom:58px;transform:translate(-50%,calc(100% + 90px));z-index:70;display:flex;align-items:center;gap:12px;flex-wrap:wrap;max-width:calc(100vw - 40px);padding:11px 16px;background:#15171ef2;border:1px solid #ffffff26;border-radius:12px;box-shadow:0 16px 40px #0008;transition:transform .22s}
 .lib-batchbar.on{transform:translate(-50%,0)}
 .lib-batchbar .secondary{font-size:11px;padding:8px 12px}
 /* ===== 壁纸引擎：批量测试进度 / 大图预览 ===== */
@@ -548,7 +554,7 @@ body.wf-drag-active *{cursor:grabbing!important}
 <body>
 <div class="app">
 <aside class="sidebar" id="sidebar">
-  <div class="brand"><div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m4 16 5-5 4 4 3-3 4 4"/></svg></div>WallFlow</div>
+  <div class="brand"><div class="brand-mark"><img src="assets/app-icon.png" alt="WallFlow 图标"></div>WallFlow</div>
   <div class="nav-label">DISCOVER</div>
   <nav class="nav">
     <button class="active" data-page="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 11 9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>发现</button>
@@ -565,7 +571,6 @@ body.wf-drag-active *{cursor:grabbing!important}
   </nav>
   <div class="sidebar-bottom">
     <nav class="nav"><button data-page="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.7 1l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.7-1l-1.7.6-1.4-2.4 1.4-1.1a7 7 0 0 1 0-2l-1.4-1.1 1.4-2.4 1.7.6a8 8 0 0 1 1.7-1l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.7 1l1.7-.6 1.4 2.4-1.4 1.1a7 7 0 0 1 0 2z"/></svg>设置</button></nav>
-    <div class="profile"><div class="avatar">W</div><div><b style="font-size:12px">WallFlow 用户</b><small>本地体验模式</small></div><span style="margin-left:auto;color:#74798a">···</span></div>
   </div>
 </aside>
 <main class="main">
@@ -1477,11 +1482,28 @@ function marqueeSpec(){
   return LOCAL_PAGES.includes(currentPage)?MARQUEE_SPECS.local:null;
 }
 (function attachMarquee(){
-  let sx=0,sy=0,dragging=false,box=null,base=new Set(),suppressUntil=0,cur=null,startEl=null;
-  const TH=6;
+  // 起点/终点一律用「文档坐标」(client + scroll)，不用视口坐标。
+  // 旧实现存 clientX/clientY，滚动后起点钉在视口原位、内容却滚走了，框相对内容漂移，
+  // 于是只能框到当前可见那一段——这是"从最顶端框不到最底部"的根因。
+  let sx=0,sy=0,lastCX=0,lastCY=0,dragging=false,box=null,base=new Set(),suppressUntil=0,cur=null,startEl=null;
+  let edgeTimer=null;
+  const TH=6, EDGE=52, EDGE_SPEED=20;   // 拖到视口上下边缘时自动滚动
+  function stopEdge(){ if(edgeTimer){ clearInterval(edgeTimer); edgeTimer=null; } }
+  function autoScroll(){
+    if(!dragging) return;
+    let d=0;
+    if(lastCY<EDGE) d=-EDGE_SPEED;
+    else if(lastCY>window.innerHeight-EDGE) d=EDGE_SPEED;
+    if(!d){ stopEdge(); return; }
+    // 页面已到顶/底就别空转
+    if((d<0&&window.scrollY<=0)||(d>0&&window.scrollY+window.innerHeight>=document.documentElement.scrollHeight)) return;
+    window.scrollBy(0,d);               // scroll 事件会触发 onScroll → 重画框 + 重算命中
+  }
   function resetDrag(){
     document.removeEventListener('mousemove',onMove);
     document.removeEventListener('mouseup',onUp);
+    window.removeEventListener('scroll',onScroll);
+    stopEdge();
     document.body.classList.remove('wf-selecting');
     if(box){ box.remove(); box=null; }
     dragging=false; cur=null; startEl=null;
@@ -1497,15 +1519,38 @@ function marqueeSpec(){
     // 一拖就只剩一张"的根因。空白处起手仍然走框选，两者分工明确、互不打架。
     if(t.closest('.wall-card[data-wid]')) return;
     cur=spec; startEl=t;
-    sx=e.clientX; sy=e.clientY; dragging=false;
+    sx=e.clientX+window.scrollX; sy=e.clientY+window.scrollY;   // 文档坐标，固定不随滚动漂移
+    lastCX=e.clientX; lastCY=e.clientY;
+    dragging=false;
     // 按住 Ctrl / Shift 时在现有选择上追加，否则从空开始
     base=(e.ctrlKey||e.metaKey||e.shiftKey)?new Set(cur.selected()):new Set();
     document.addEventListener('mousemove',onMove);
     document.addEventListener('mouseup',onUp);
+    window.addEventListener('scroll',onScroll,{passive:true});
+  }
+  // 画框 + 算命中：范围用文档坐标，框本身是 fixed 定位，画的时候换回视口坐标。
+  function paint(){
+    const cx=lastCX+window.scrollX, cy=lastCY+window.scrollY;
+    const l=Math.min(sx,cx), t=Math.min(sy,cy), w=Math.abs(cx-sx), h=Math.abs(cy-sy);
+    box.style.cssText='left:'+(l-window.scrollX)+'px;top:'+(t-window.scrollY)+'px;width:'+w+'px;height:'+h+'px';
+    const page=document.querySelector('.page.active')||document;
+    const hit=new Set(base);
+    page.querySelectorAll(cur.selector).forEach(el=>{
+      const r=el.getBoundingClientRect();
+      // 隐藏页的卡片 rect 是 0，别让它们混进来
+      if(!r.width||!r.height) return;
+      const elL=r.left+window.scrollX, elT=r.top+window.scrollY;   // 卡片也换成文档坐标
+      if(elL+r.width>l&&elL<l+w&&elT+r.height>t&&elT<t+h){
+        const k=cur.key(el);
+        if(k!=null) hit.add(k);
+      }
+    });
+    cur.set(hit);
   }
   function onMove(e){
     if(!cur) return;
-    const dx=e.clientX-sx,dy=e.clientY-sy;
+    lastCX=e.clientX; lastCY=e.clientY;
+    const dx=lastCX+window.scrollX-sx, dy=lastCY+window.scrollY-sy;
     if(!dragging){
       if(Math.abs(dx)<TH&&Math.abs(dy)<TH) return;
       dragging=true;
@@ -1513,24 +1558,12 @@ function marqueeSpec(){
       box=document.createElement('div');
       box.className='wf-marquee';
       document.body.appendChild(box);
+      if(!edgeTimer) edgeTimer=setInterval(autoScroll,16);
     }
     e.preventDefault();
-    const l=Math.min(sx,e.clientX),t=Math.min(sy,e.clientY);
-    const w=Math.abs(dx),h=Math.abs(dy);
-    box.style.cssText='left:'+l+'px;top:'+t+'px;width:'+w+'px;height:'+h+'px';
-    const page=document.querySelector('.page.active')||document;
-    const hit=new Set(base);
-    page.querySelectorAll(cur.selector).forEach(el=>{
-      const r=el.getBoundingClientRect();
-      // 隐藏页的卡片 rect 是 0，别让它们混进来
-      if(!r.width||!r.height) return;
-      if(r.right>l&&r.left<l+w&&r.bottom>t&&r.top<t+h){
-        const k=cur.key(el);
-        if(k!=null) hit.add(k);
-      }
-    });
-    cur.set(hit);
+    paint();
   }
+  function onScroll(){ if(dragging&&box) paint(); }   // 滚动（含边缘自动滚）时框跟着内容走
   function onUp(){
     const spec=cur, from=startEl;
     const wasDrag=dragging;
