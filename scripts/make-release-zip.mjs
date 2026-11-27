@@ -8,7 +8,9 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'release', 'WallFlow');
-const OUT = path.join(ROOT, 'release', 'WallFlow-v0.6.0-win-x64.zip');
+// 版本号从 package.json 读，避免发版时忘记改这里的硬编码
+const VERSION = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
+const OUT = path.join(ROOT, 'release', `WallFlow-v${VERSION}-win-x64.zip`);
 
 if (!fs.existsSync(SRC)) { console.error('找不到成品目录：' + SRC); process.exit(1); }
 
